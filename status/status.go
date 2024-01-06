@@ -2,9 +2,18 @@ package status
 
 import (
 	"context"
+	"errors"
 	"runtime"
 	"sync"
 	"sync/atomic"
+)
+
+const (
+	ErrTypeInvalidStatus = "status.invalid"
+)
+
+var (
+	ErrInvalidStatus = errors.New("invalid status")
 )
 
 // Controller is used for controlling the service or worker that has status, and widely used in projects.
@@ -15,7 +24,7 @@ import (
 // Similarly, "stopping" status is useful when do stop operation.
 // Typical usage is embed in an object for status controller. See testing example for more detail.
 type Controller struct {
-	status int
+	status tStatus
 	rw     sync.RWMutex
 	stop   sync.RWMutex
 	down   bool
@@ -24,7 +33,7 @@ type Controller struct {
 
 func NewController() *Controller {
 	return &Controller{
-		status: Ready,
+		status: ready,
 	}
 }
 
@@ -49,20 +58,20 @@ func NewController() *Controller {
 */
 func (c *Controller) Starting() bool {
 	c.rw.Lock()
-	if c.status != Ready {
+	if c.status != ready {
 		c.rw.Unlock()
 		return false
 	}
-	c.status = Starting
+	c.status = starting
 	return true
 }
 
 // Failed is always called with Starting in pair. See Starting for more details.
 func (c *Controller) Failed(err error) {
-	if c.status == Ready {
-		c.status = Stopped
-	} else if c.status == Starting {
-		c.status = Stopped
+	if c.status == ready {
+		c.status = stopped
+	} else if c.status == starting {
+		c.status = stopped
 		c.rw.Unlock()
 	} else {
 		panic("incorrect status in calling Failed")
@@ -72,10 +81,10 @@ func (c *Controller) Failed(err error) {
 
 // Started is always called with Starting in pair. See Starting for more details.
 func (c *Controller) Started() {
-	if c.status == Ready {
-		c.status = Running
-	} else if c.status == Starting {
-		c.status = Running
+	if c.status == ready {
+		c.status = running
+	} else if c.status == starting {
+		c.status = running
 		c.rw.Unlock()
 	} else {
 		panic("incorrect status in calling Started")
@@ -99,20 +108,20 @@ func (c *Controller) Stopping() bool {
 	c.down = true
 	c.stop.Unlock()
 	c.rw.Lock()
-	if c.status != Running {
+	if c.status != running {
 		c.rw.Unlock()
 		return false
 	}
-	c.status = Stopping
+	c.status = stopping
 	return true
 }
 
 // Stopped is always called with Stopping in pair. See Stopping for more details.
 func (c *Controller) Stopped() {
-	if c.status != Stopping {
+	if c.status != stopping {
 		panic("incorrect status in calling Stopped")
 	}
-	c.status = Stopped
+	c.status = stopped
 	c.rw.Unlock()
 }
 
@@ -131,7 +140,7 @@ func (c *Controller) KeepRunning() bool {
 		return false
 	}
 	c.rw.RLock()
-	if c.status == Running {
+	if c.status == running {
 		return true
 	}
 	c.rw.RUnlock()
@@ -151,9 +160,9 @@ func (c *Controller) KeepRunningWithContext(ctx context.Context) bool {
 	}
 	for {
 		c.rw.RLock()
-		if c.status == Running {
+		if c.status == running {
 			return true
-		} else if c.status == Ready {
+		} else if c.status == ready {
 			c.rw.RUnlock()
 			select {
 			case <-ctx.Done():
@@ -172,7 +181,7 @@ func (c *Controller) KeepRunningWithContext(ctx context.Context) bool {
 
 // ReleaseRunning is always called with KeepRunning or KeepRunningWithContext in pair. See KeepRunning for more details.
 func (c *Controller) ReleaseRunning() {
-	if c.status != Running {
+	if c.status != running {
 		panic("incorrect status in calling ReleaseRunning")
 	}
 	c.rw.RUnlock()
@@ -188,10 +197,21 @@ func (c *Controller) StatusError(err error) error {
 	return x.(error)
 }
 
+type tStatus string
+
+func (s tStatus) String() string {
+	return string(s)
+}
+
 const (
-	Ready = iota
-	Starting
-	Running
-	Stopping
-	Stopped
+	// ready is the initial status for the controller
+	ready tStatus = "ready"
+	// starting is the middle status between "ready" and "running"
+	starting tStatus = "starting"
+	// running means Controller is started and working already
+	running tStatus = "running"
+	// stopping is the middle status between "running" and "stopped"
+	stopping tStatus = "stopping"
+	// stopped is the last status of the Controller which means it's down
+	stopped tStatus = "stopped"
 )
