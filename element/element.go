@@ -61,7 +61,7 @@ type ELEMENT interface {
 	e.Meta().Initialization.Wait()
 */
 type Element struct {
-	// id is the unique autoincrement id in Manager.
+	// id is the keys autoincrement id in Manager.
 	id uint64
 
 	// in is a flag mark the Element is in the Manager.
@@ -73,11 +73,11 @@ type Element struct {
 	// initial controls the initialization operation of the Element, it's not required.
 	initial *Initialization
 
-	// unique defines the unique index of the Element.
-	unique map[string][]interface{}
+	// keys defines all keys of the Element.
+	keys map[string][]interface{}
 
-	// index defines the index of the Element.
-	index map[string][]interface{}
+	// indexes defines all indexes of the Element.
+	indexes map[string][]interface{}
 }
 
 type SearchIndexRelation string
@@ -103,14 +103,14 @@ func (e *Element) Leave() {
 	e.mgr.Remove(e)
 }
 
-// SetUniqueIndex will set a unique index for the Element. the value type must be types thar supports "==" operation.
-func (e *Element) SetUniqueIndex(field string, value interface{}) {
-	e.unique[field] = append(e.unique[field], value)
+// SetKey will set a unique key for the Element. the value type must be types thar supports "==" operation.
+func (e *Element) SetKey(field string, value interface{}) {
+	e.keys[field] = append(e.keys[field], value)
 }
 
 // SetIndex will set an index for the Element. the value type must be types thar supports "==" operation.
 func (e *Element) SetIndex(field string, value interface{}) {
-	e.index[field] = append(e.index[field], value)
+	e.indexes[field] = append(e.indexes[field], value)
 }
 
 // SetInitialization defines the Element's initialization function.

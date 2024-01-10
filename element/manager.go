@@ -6,21 +6,32 @@ import (
 )
 
 // Manager is designed for elements manager which like a simple database used, provides CRUD operations.
-// It's the container of elements, and manages they with index(unique index is also support).
+// It's the container of elements, and manages they with keys and indexes.
+// Methods of Manager are thread-safe.
 type Manager struct {
-	autoId   uint64
-	rw       sync.RWMutex
+	// autoId is an autoincrement id, when NewElement called, the id will increment
+	// So each ELEMENT in the Manager has a unique id.
+	autoId uint64
+
+	// rw uses to guarantee the thread-safe for methods call.
+	rw sync.RWMutex
+
+	// elements manages all ELEMENT object
 	elements map[uint64]ELEMENT
-	unique   map[string]map[interface{}]uint64
-	index    map[string]map[interface{}]map[uint64]bool
+
+	// keys manages ELEMENT's keys for Find method when do querying.
+	keys map[string]map[interface{}]uint64
+
+	// index manages ELEMENT's indexes for Search/SearchEx method when do searing.
+	indexes map[string]map[interface{}]map[uint64]bool
 }
 
 func NewManager() *Manager {
 	return &Manager{
 		autoId:   0,
 		elements: make(map[uint64]ELEMENT),
-		unique:   make(map[string]map[interface{}]uint64),
-		index:    make(map[string]map[interface{}]map[uint64]bool),
+		keys:     make(map[string]map[interface{}]uint64),
+		indexes:  make(map[string]map[interface{}]map[uint64]bool),
 	}
 }
 
@@ -29,16 +40,16 @@ func NewManager() *Manager {
 // Each Element has a unique autoincrement id.
 func (m *Manager) NewElement() *Element {
 	return &Element{
-		id:     atomic.AddUint64(&m.autoId, 1),
-		in:     0,
-		mgr:    m,
-		unique: make(map[string][]interface{}),
-		index:  make(map[string][]interface{}),
+		id:      atomic.AddUint64(&m.autoId, 1),
+		in:      0,
+		mgr:     m,
+		keys:    make(map[string][]interface{}),
+		indexes: make(map[string][]interface{}),
 	}
 }
 
 // Join is used to insert an element to the manager.
-// This method is thread safe and concurrent supported.
+// This method is thread-safe and concurrent supported.
 // When multiple threads/goroutine call Join with the same input ELEMENT, only one ELEMENT will be inserted.
 // If the ELEMENT is already exists in the manager(which judges by the autoincrement id of the ELEMENT), it will return the exists ELEMENT.
 // So return value is the inserted ELEMENT or the ELEMENT already exists.
@@ -61,35 +72,35 @@ func (m *Manager) Join(e ELEMENT) ELEMENT {
 		m.rw.Unlock()
 		return ee
 	}
-	// insert unique
-	for f, vv := range meta.unique {
-		_, ok := m.unique[f]
+	// insert keys
+	for f, vv := range meta.keys {
+		_, ok := m.keys[f]
 		if !ok {
-			m.unique[f] = make(map[interface{}]uint64)
+			m.keys[f] = make(map[interface{}]uint64)
 		}
 		for _, v := range vv {
-			id, ok := m.unique[f][v]
+			id, ok := m.keys[f][v]
 			if ok {
 				e := m.elements[id]
 				m.rw.Unlock()
 				return e
 			}
-			m.unique[f][v] = meta.id
+			m.keys[f][v] = meta.id
 		}
 	}
-	// insert index
-	for f, vv := range meta.index {
-		_, ok := m.index[f]
+	// insert indexes
+	for f, vv := range meta.indexes {
+		_, ok := m.indexes[f]
 		if !ok {
-			m.index[f] = make(map[interface{}]map[uint64]bool)
+			m.indexes[f] = make(map[interface{}]map[uint64]bool)
 		}
 		for _, v := range vv {
-			ids, ok := m.index[f][v]
+			ids, ok := m.indexes[f][v]
 			if !ok {
 				ids = make(map[uint64]bool)
 			}
 			ids[meta.id] = true
-			m.index[f][v] = ids
+			m.indexes[f][v] = ids
 		}
 	}
 	m.elements[meta.id] = e
@@ -113,12 +124,12 @@ func (m *Manager) Get(id uint64) ELEMENT {
 	return e
 }
 
-// Find query the ELEMENT with unique index.
-// It will return the found ELEMENT, nil will be returned if ELEMENT not found.
+// Find query the ELEMENT with key.
+// It will return the found ELEMENT, or 'nil' will be returned if ELEMENT not found.
 func (m *Manager) Find(unique string, value interface{}) ELEMENT {
 	m.rw.RLock()
 	defer m.rw.RUnlock()
-	ref, ok := m.unique[unique]
+	ref, ok := m.keys[unique]
 	if !ok {
 		return nil
 	}
@@ -136,7 +147,7 @@ func (m *Manager) SearchEx(indexes map[string][]interface{}, relation SearchInde
 	elIds := make(map[uint64]bool)
 	var init bool
 	for field, values := range indexes {
-		ref, ok := m.index[field]
+		ref, ok := m.indexes[field]
 		if !ok {
 			if relation == RelationAND {
 				return []ELEMENT{}
@@ -189,7 +200,7 @@ func (m *Manager) Search(index string, value interface{}) []ELEMENT {
 	m.rw.RLock()
 	defer m.rw.RUnlock()
 	var els []ELEMENT
-	ref, ok := m.index[index]
+	ref, ok := m.indexes[index]
 	if !ok {
 		return els
 	}
@@ -203,12 +214,12 @@ func (m *Manager) Search(index string, value interface{}) []ELEMENT {
 	return els
 }
 
-// GroupByIndex groups elements by input index, the return map is always no-nil
+// GroupByIndex groups elements by input index, the return map is always no-nil(may an empty map)
 func (m *Manager) GroupByIndex(index string) map[interface{}][]ELEMENT {
 	m.rw.RLock()
 	defer m.rw.RUnlock()
 	els := make(map[interface{}][]ELEMENT)
-	ref, ok := m.index[index]
+	ref, ok := m.indexes[index]
 	if !ok {
 		return els
 	}
@@ -222,7 +233,8 @@ func (m *Manager) GroupByIndex(index string) map[interface{}][]ELEMENT {
 	return els
 }
 
-// Snapshot makes a copy of current elements in Manager
+// Snapshot makes a copy of current elements in Manager.
+// It's usually used for iterating scenes.See testing case and example for more details.
 func (m *Manager) Snapshot() map[uint64]ELEMENT {
 	copys := make(map[uint64]ELEMENT)
 	m.rw.RLock()
@@ -241,6 +253,7 @@ func (m *Manager) Count() int {
 	return count
 }
 
+// Empty used to check if the Manager has any elements.
 func (m *Manager) Empty() bool {
 	m.rw.RLock()
 	empty := len(m.elements) == 0
@@ -265,14 +278,14 @@ func (m *Manager) Remove(e *Element) {
 	if !ok {
 		return
 	}
-	for f, vv := range e.index {
+	for f, vv := range e.indexes {
 		for _, v := range vv {
-			delete(m.index[f][v], id)
+			delete(m.indexes[f][v], id)
 		}
 	}
-	for f, vv := range e.unique {
+	for f, vv := range e.keys {
 		for _, v := range vv {
-			delete(m.unique[f], v)
+			delete(m.keys[f], v)
 		}
 	}
 	delete(m.elements, id)
@@ -283,6 +296,6 @@ func (m *Manager) Clear() {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	m.elements = make(map[uint64]ELEMENT)
-	m.unique = make(map[string]map[interface{}]uint64)
-	m.index = make(map[string]map[interface{}]map[uint64]bool)
+	m.keys = make(map[string]map[interface{}]uint64)
+	m.indexes = make(map[string]map[interface{}]map[uint64]bool)
 }

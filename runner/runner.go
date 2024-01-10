@@ -8,7 +8,7 @@ import (
 // Runner is a useful feature for background goroutine life cycle control.
 // It wraps the sync.WaitGroup and provides a channel for receiving the close notify signal.
 // It's used in background go routine loop task as usual.
-// All method are thread safe and reentrant.
+// All method are thread-safe and reentrant.
 type Runner struct {
 	c      context.Context
 	cancel context.CancelFunc
