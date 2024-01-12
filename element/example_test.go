@@ -2,6 +2,7 @@ package element
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -9,14 +10,8 @@ import (
 
 type item struct {
 	*Element
-	tags  []string
-	key   string
-	value int
-}
-
-type testdataItem struct {
-	key   string
-	tags  []string
+	tags  map[string][]interface{}
+	key   map[string]string
 	value int
 }
 
@@ -98,11 +93,11 @@ func TestConcurrentJoinAndInitialization(t *testing.T) {
 			defer wg.Done()
 			itm := &item{
 				Element: mgr.NewElement(),
-				key:     "same key",
+				key:     map[string]string{keyUniqueValue: "same key"},
 				value:   i,
 			}
 			// all insert item has the same key, so only one item could be inserted successfully.
-			itm.SetKey("item.key", itm.key)
+			itm.SetKey(keyUniqueValue, itm.key[keyUniqueValue])
 			itm.SetInitialization(ctx, func(c context.Context) error {
 				initItemValue = i
 				t.Log("Initialization callback called")
@@ -138,23 +133,52 @@ func TestConcurrentJoinAndInitialization(t *testing.T) {
 		t.Errorf("insertItemValue[%d] is not equal to initItemValue[%d]", insertItemValue, initItemValue)
 	}
 }
+func TestKeyFind(t *testing.T) {
+	num := 100
+	testItems := make([]*testdataItem, 100)
+	for i := 0; i != num; i++ {
+		testItems[i] = &testdataItem{
+			key: map[string]string{
+				keySeq: strconv.Itoa(i),
+			},
+			tags:  nil,
+			value: i,
+		}
+	}
+	mgr := NewManager()
+	insertItemsWithTestData(mgr, testItems)
+
+	for i := 0; i != num*2; i++ {
+		key := strconv.Itoa(i)
+		e := mgr.Find(keySeq, key)
+		if i < num {
+			if e == nil {
+				t.Errorf("primary key[%s] is not found as expected", key)
+			}
+		} else {
+			if e != nil {
+				t.Errorf("primary key[%s] is found which isn't as expected", key)
+			}
+		}
+	}
+}
 
 func TestIndexSearch(t *testing.T) {
 	testItems := []*testdataItem{
-		{"", []string{"odd"}, 1},
-		{"", []string{"even"}, 2},
-		{"", []string{"odd"}, 3},
-		{"", []string{"even"}, 4},
-		{"", []string{"odd"}, 5},
-		{"", []string{"even"}, 6},
-		{"", []string{"odd"}, 7},
-		{"", []string{"even"}, 8},
+		{nil, map[string][]interface{}{indexMath: {"odd"}}, 1},
+		{nil, map[string][]interface{}{indexMath: {"even"}}, 2},
+		{nil, map[string][]interface{}{indexMath: {"odd"}}, 3},
+		{nil, map[string][]interface{}{indexMath: {"even"}}, 4},
+		{nil, map[string][]interface{}{indexMath: {"odd"}}, 5},
+		{nil, map[string][]interface{}{indexMath: {"even"}}, 6},
+		{nil, map[string][]interface{}{indexMath: {"odd"}}, 7},
+		{nil, map[string][]interface{}{indexMath: {"even"}}, 8},
 	}
 
 	mgr := NewManager()
 	insertItemsWithTestData(mgr, testItems)
 
-	ee := mgr.Search("item.index.tag", "odd")
+	ee := mgr.Search(indexMath, "odd")
 	for _, e := range ee {
 		v := e.(*item).value
 		if v%2 == 0 {
@@ -162,13 +186,120 @@ func TestIndexSearch(t *testing.T) {
 		}
 	}
 
-	ee = mgr.Search("item.index.tag", "even")
+	ee = mgr.Search(indexMath, "even")
 	for _, e := range ee {
 		v := e.(*item).value
 		if v%2 != 0 {
 			t.Errorf("Search by index 'even' return[%d] is not expected", v)
 		}
 	}
+}
+
+func TestMultipleKeys(t *testing.T) {
+	num := 100
+	testItems := make([]*testdataItem, 100)
+	for i := 0; i != num; i++ {
+		testItems[i] = &testdataItem{
+			key: map[string]string{
+				keySeq: strconv.Itoa(i),
+				// "0" or "1", so only two items will be inserted, others will fail with exists check.
+				keyUniqueValue: strconv.Itoa(i % 2),
+			},
+			tags:  nil,
+			value: i,
+		}
+	}
+	mgr := NewManager()
+	insertItemsWithTestData(mgr, testItems)
+	if mgr.Count() != 2 {
+		t.Fatalf("Manager.Count()[%d] is not expected[%d]", mgr.Count(), 2)
+	}
+	for _, e := range mgr.Snapshot() {
+		itm := e.(*item)
+		if itm.value != 0 && itm.value != 1 {
+			t.Errorf("invalid item inserted value[%d]", itm.value)
+		}
+	}
+}
+
+func TestMultipleIndex(t *testing.T) {
+	num := 100
+	testItems := make([]*testdataItem, 100)
+	for i := 0; i != num; i++ {
+		var math []interface{}
+		if i%2 == 0 {
+			math = append(math, "even")
+		} else {
+			math = append(math, "odd")
+		}
+		if i%3 == 0 {
+			math = append(math, "mt")
+		}
+		testItems[i] = &testdataItem{
+			key: nil,
+			tags: map[string][]interface{}{
+				indexDecimal: {i / 10 * 10},
+				indexMath:    math,
+			},
+			value: i,
+		}
+	}
+	mgr := NewManager()
+	insertItemsWithTestData(mgr, testItems)
+	if mgr.Count() != num {
+		t.Fatalf("Manager.Count()[%d] is not expected[%d]", mgr.Count(), num)
+	}
+
+	// search the num which is 10-20 or 90-100 or is an even
+	ee := mgr.SearchEx(map[string][]interface{}{
+		indexDecimal: {10, 20, 90},
+		indexMath:    {"even"},
+	}, RelationOR)
+
+	var expectedResult int
+	for i := 0; i != num; i++ {
+		decimal := i / 10 * 10
+		if (decimal >= 10 && decimal < 30) || (decimal >= 90 && decimal < 100) ||
+			i%2 == 0 {
+			expectedResult++
+			continue
+		}
+	}
+	if len(ee) != expectedResult {
+		t.Fatalf("SearchEx find multiple three numbers result[%d] is not expected[%d]", len(ee), expectedResult)
+	}
+
+	// search the num which is 30-40, then is both odd and mt
+	ee = mgr.SearchEx(map[string][]interface{}{
+		indexDecimal: {30},
+		indexMath:    {"odd", "mt"},
+	}, RelationAND)
+
+	expectedResult = 0
+	for i := 0; i != num; i++ {
+		decimal := i / 10 * 10
+		if (decimal >= 30 && decimal < 40) &&
+			i%2 != 0 && i%3 == 0 {
+			expectedResult++
+			continue
+		}
+	}
+	if len(ee) != expectedResult {
+		t.Fatalf("SearchEx find multiple three numbers result[%d] is not expected[%d]", len(ee), expectedResult)
+	}
+}
+
+const (
+	keySeq         = "item.key.seq"
+	keyUniqueValue = "item.key.unique_value"
+	indexMath      = "item.index.math"
+	indexDecimal   = "item.index.decimal"
+)
+
+type testdataItem struct {
+	key   map[string]string
+	tags  map[string][]interface{}
+	value int
 }
 
 func insertItemsWithTestData(mgr *Manager, testItems []*testdataItem) {
@@ -179,9 +310,17 @@ func insertItemsWithTestData(mgr *Manager, testItems []*testdataItem) {
 			key:     tm.key,
 			value:   tm.value,
 		}
-		itm.SetKey("item.primary.key", tm.key)
-		for _, tag := range tm.tags {
-			itm.SetIndex("item.index.tag", tag)
+		if tm.key != nil {
+			for k, v := range tm.key {
+				itm.SetKey(k, v)
+			}
+		}
+		if tm.tags != nil {
+			for k, vv := range tm.tags {
+				for _, v := range vv {
+					itm.SetIndex(k, v)
+				}
+			}
 		}
 		mgr.Join(itm)
 	}
