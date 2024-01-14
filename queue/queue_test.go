@@ -95,3 +95,33 @@ func TestPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestDispose(t *testing.T) {
+	const (
+		chanCapacity  = 10
+		queueCapacity = 100
+		num           = 200
+		receiveNum    = 5
+	)
+	q := NewBuffer(
+		WithChannelCapacity(chanCapacity),
+		WithBufferingIdleTime(1*time.Second),
+		WithQueueCapacity(queueCapacity),
+		WithQueuePolicy(PolicyDrop))
+
+	for i := 0; i != num; i++ {
+		q.Push(i)
+	}
+	for i := 0; i != receiveNum; i++ {
+		select {
+		case <-q.Channel():
+		}
+	}
+
+	ee := q.Dispose()
+
+	expected := chanCapacity + queueCapacity - receiveNum
+	if len(ee) != expected {
+		t.Fatalf("Dipose return the elements count[%d] in Buffer is not expected[%d]", len(ee), expected)
+	}
+}

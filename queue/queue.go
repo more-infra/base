@@ -30,6 +30,7 @@ type Buffer struct {
 	queueCapacity int
 	policy        Policy
 	idleTime      time.Duration
+	unsent        interface{}
 }
 
 // NewBuffer create a buffer with the options. The options have default value if inputs are not set.
@@ -156,12 +157,34 @@ func (b *Buffer) SetCapacity(cap int) {
 }
 
 // Dispose is required to called when the Buffer is not used.
-func (b *Buffer) Dispose() {
+func (b *Buffer) Dispose() []interface{} {
 	if atomic.CompareAndSwapInt32(&b.closed, 0, 1) {
 		b.runner.CloseWait()
+
+		var vv []interface{}
+		func() {
+			for {
+				select {
+				case v := <-b.ch:
+					vv = append(vv, v)
+				default:
+					return
+				}
+			}
+		}()
+		if b.unsent != nil {
+			vv = append(vv, b.unsent)
+		}
+		for b.queue.Length() != 0 {
+			v := b.queue.Remove()
+			vv = append(vv, v)
+		}
+
 		close(b.ch)
 		close(b.sign)
+		return vv
 	}
+	return nil
 }
 
 func (b *Buffer) running() {
@@ -208,6 +231,7 @@ func (b *Buffer) running() {
 		// sending element to called channel
 		select {
 		case <-b.runner.Quit():
+			b.unsent = e
 			return
 		case b.ch <- e:
 		}
