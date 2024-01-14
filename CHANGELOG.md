@@ -4,6 +4,7 @@
 - element, status package comment for go doc format fixed
 ## Features
 - [queue package] chan with dynamic capacity
+- [reactor package] reactor design mode for resolving sync locking and concurrent controlling.
 
 ---
 # [v0.9.0] 2024-01-12

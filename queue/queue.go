@@ -18,6 +18,8 @@ import (
 // The input for the Buffer will be inserted to go chan firstly, when the go chan is full, the input elements will be
 // inserted to the self-defined queue struct and then a background goroutine will put the elements in queue into go chan continuously.
 // As you see, the self-defined queue is used for buffering the elements when the go chan is full, and it keeps the order of elements input.
+//
+// All methods of Buffer are thread-safe.
 type Buffer struct {
 	runner        *runner.Runner
 	queue         *queue.Queue
@@ -147,6 +149,10 @@ func (b *Buffer) Push(elm interface{}) PushResult {
 // Channel return the receiver chan. The chan will be close after Dispose method is called.
 func (b *Buffer) Channel() <-chan interface{} {
 	return b.ch
+}
+
+func (b *Buffer) Size() int {
+	return len(b.ch) + b.queue.Length()
 }
 
 // SetCapacity set the self-defined queue's capacity dynamically.
