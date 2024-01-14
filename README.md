@@ -1,6 +1,6 @@
 # more-infra/base
 
-[![Github CI](https://github.com/more-infra/base/actions/workflows/testing.yml/badge.svg?branch=main&event=pull_request)]()
+[![Github CI](https://github.com/more-infra/base/actions/workflows/testing.yml/badge.svg)]()
 [![Go Reference](https://pkg.go.dev/badge/github.com/more-infra/base.svg)](https://pkg.go.dev/github.com/more-infra/base)  
 
 The basic structures and design modes which could be used by projects.  
