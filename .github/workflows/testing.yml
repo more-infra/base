@@ -6,6 +6,8 @@ name: testing
 on:
   pull_request:
     branches: [ "main" ]
+  push:
+    branches: ["develop/*"]
 jobs:
   testing:
     runs-on: ubuntu-latest
