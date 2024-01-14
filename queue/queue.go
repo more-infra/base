@@ -55,7 +55,7 @@ type BufferOption func(*Buffer)
 
 const (
 	DefaultChannelCapacity   = 128
-	DefaultBufferingIdleTime = 30 * time.Second
+	DefaultBufferingIdleTime = 10 * time.Second
 )
 
 // WithChannelCapacity set the channel capacity, this value could not be changed after the Buffer is created.
@@ -67,7 +67,7 @@ func WithChannelCapacity(cap int) BufferOption {
 }
 
 // WithQueueCapacity set the self-defined queue capacity, this value could be changed by SetCapacity method.
-// The default value is 1024.
+// The default value is unlimited, meaning the queue could be always extended when it's required.
 func WithQueueCapacity(cap int) BufferOption {
 	return func(b *Buffer) {
 		b.queueCapacity = cap
@@ -75,6 +75,7 @@ func WithQueueCapacity(cap int) BufferOption {
 }
 
 // WithBufferingIdleTime defines the idle time of the background goroutine keeping when the self-defined queue is empty.
+// The default value is 10 seconds.
 func WithBufferingIdleTime(dur time.Duration) BufferOption {
 	return func(b *Buffer) {
 		b.idleTime = dur
@@ -88,6 +89,8 @@ func WithBufferingIdleTime(dur time.Duration) BufferOption {
 // PolicyRemove: remove the tail of queue and insert the input element
 //
 // PolicyClear: clear the all queue, and insert element to the new queue.
+//
+// The default value is PolicyDrop
 func WithQueuePolicy(policy Policy) BufferOption {
 	return func(b *Buffer) {
 		b.policy = policy
