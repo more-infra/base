@@ -61,6 +61,7 @@ type Pool struct {
 	}
 */
 // Notice: Dispose() will be called when the Pool is not using.
+// Methods of Pool are all not thread-safe.
 func NewPool(quit chan struct{}, refresh chan struct{}) *Pool {
 	p := &Pool{
 		pos:    -1,
@@ -86,10 +87,10 @@ func NewPool(quit chan struct{}, refresh chan struct{}) *Pool {
 }
 
 // Reset will clear all channels in the Pool and recover the Pool to initial.
-func (this *Pool) Reset() {
-	this.done = make(chan struct{})
-	if this.pos != -1 {
-		this.pos = -1
+func (p *Pool) Reset() {
+	p.done = make(chan struct{})
+	if p.pos != -1 {
+		p.pos = -1
 	}
 }
 
@@ -97,46 +98,46 @@ func (this *Pool) Reset() {
 // The ch param is the chan to be Select, and the ctx param will associate with the ch param,
 // Select will return the ctx when the ch is signal.
 // When quit or refresh chan is signal, the return ctx is the chan itself.
-func (this *Pool) Push(ctx interface{}, ch interface{}) {
+func (p *Pool) Push(ctx interface{}, ch interface{}) {
 	var curGroup *group
-	if this.pos == -1 {
-		if len(this.groups) == 0 {
-			curGroup = this.addGroup()
+	if p.pos == -1 {
+		if len(p.groups) == 0 {
+			curGroup = p.addGroup()
 			curGroup.push(ctx, ch)
 			return
 		}
-		this.pos++
-		curGroup = this.groups[this.pos]
+		p.pos++
+		curGroup = p.groups[p.pos]
 		curGroup.reset()
 		curGroup.push(ctx, ch)
 		return
 	}
-	curGroup = this.groups[this.pos]
+	curGroup = p.groups[p.pos]
 	if curGroup.push(ctx, ch) {
 		return
 	}
-	if this.pos == len(this.groups)-1 {
-		curGroup = this.addGroup()
+	if p.pos == len(p.groups)-1 {
+		curGroup = p.addGroup()
 		curGroup.push(ctx, ch)
 		return
 	}
-	this.pos++
-	curGroup = this.groups[this.pos]
+	p.pos++
+	curGroup = p.groups[p.pos]
 	curGroup.reset()
 	curGroup.push(ctx, ch)
 }
 
 // Select will check all channels in the Pool as select do.
 // It will return when the channels signal or quit, refresh chan signal, the SelectResult will tell the reason.
-func (this *Pool) Select() (interface{}, SelectResult) {
+func (p *Pool) Select() (interface{}, SelectResult) {
 	var wg sync.WaitGroup
-	for i := 0; i != this.pos+1; i++ {
-		group := this.groups[i]
+	for i := 0; i != p.pos+1; i++ {
+		group := p.groups[i]
 		wg.Add(1)
 		group.pushSelect(&wg)
 	}
-	n, v, _ := reflect.Select(this.cases)
-	close(this.done)
+	n, v, _ := reflect.Select(p.cases)
+	close(p.done)
 	wg.Wait()
 	if n == 0 {
 		return nil, SelectQuitReturned
@@ -149,9 +150,9 @@ func (this *Pool) Select() (interface{}, SelectResult) {
 
 // Dispose clear the Pool when it's not using.
 // It should be called, otherwise goroutine leak will be happened.
-func (this *Pool) Dispose() {
+func (p *Pool) Dispose() {
 	var wg sync.WaitGroup
-	for _, group := range this.groups {
+	for _, group := range p.groups {
 		group := group
 		wg.Add(1)
 		go func() {
@@ -160,22 +161,22 @@ func (this *Pool) Dispose() {
 		}()
 	}
 	wg.Wait()
-	close(this.result)
+	close(p.result)
 }
 
-func (this *Pool) addGroup() *group {
-	group := this.newGroup()
+func (p *Pool) addGroup() *group {
+	group := p.newGroup()
 	group.startup()
 	group.reset()
-	this.groups = append(this.groups, group)
-	this.pos++
+	p.groups = append(p.groups, group)
+	p.pos++
 	return group
 }
 
-func (this *Pool) newGroup() *group {
+func (p *Pool) newGroup() *group {
 	lg := &group{
 		reactor: reactor.NewReactor(),
-		group:   this,
+		group:   p,
 		cases:   make([]reflect.SelectCase, groupMaxCount, groupMaxCount),
 		ctxs:    make([]interface{}, groupMaxCount, groupMaxCount),
 		pos:     0,

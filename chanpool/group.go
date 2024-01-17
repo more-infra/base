@@ -16,38 +16,38 @@ type group struct {
 	pos     int
 }
 
-func (this *group) startup() {
-	this.reactor.Start()
+func (g *group) startup() {
+	g.reactor.Start()
 }
 
-func (this *group) shutdown() {
-	this.reactor.Stop()
+func (g *group) shutdown() {
+	g.reactor.Stop()
 }
 
-func (this *group) reset() {
-	this.cases[0].Chan = reflect.ValueOf(this.group.done)
-	this.pos = 1
+func (g *group) reset() {
+	g.cases[0].Chan = reflect.ValueOf(g.group.done)
+	g.pos = 1
 }
 
-func (this *group) push(ctx interface{}, ch interface{}) bool {
-	if this.pos == groupMaxCount {
+func (g *group) push(ctx interface{}, ch interface{}) bool {
+	if g.pos == groupMaxCount {
 		return false
 	}
-	this.cases[this.pos].Chan = reflect.ValueOf(ch)
-	this.ctxs[this.pos] = ctx
-	this.pos++
+	g.cases[g.pos].Chan = reflect.ValueOf(ch)
+	g.ctxs[g.pos] = ctx
+	g.pos++
 	return true
 }
 
-func (this *group) pushSelect(wg *sync.WaitGroup) {
-	if err := this.reactor.Push(func(context.Context) {
+func (g *group) pushSelect(wg *sync.WaitGroup) {
+	if err := g.reactor.Push(func(context.Context) {
 		defer wg.Done()
-		n, _, _ := reflect.Select(this.cases[:this.pos])
+		n, _, _ := reflect.Select(g.cases[:g.pos])
 		if n == 0 {
 			return
 		}
 		select {
-		case this.group.result <- this.ctxs[n]:
+		case g.group.result <- g.ctxs[n]:
 		default:
 		}
 	}); err != nil {
