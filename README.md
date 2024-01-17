@@ -1,7 +1,7 @@
 # more-infra/base
 
 [![Github CI](https://github.com/more-infra/base/actions/workflows/testing.yml/badge.svg)]()
-[![Go Reference](https://pkg.go.dev/badge/github.com/more-infra/base.svg)](https://pkg.go.dev/github.com/more-infra/base)  
+[![Go Reference](https://pkg.go.dev/badge/github.com/more-infra/base.svg)](https://pkg.go.dev/github.com/more-infra/base)
 
 The basic structures and design modes which could be used by projects.  
 It includes many typical and common data structures,functions for basic using.
@@ -17,6 +17,7 @@ It includes many typical and common data structures,functions for basic using.
 | queue    | chan with dynamic capacity                                                                                           |
 | reactor  | reactor design mode for resolving sync locking and concurrent controlling, which is similar to event loop processing |
 | mcontext | put multiple contexts into one which implements the context.Context interface                                        |
+|chanpool| do select for multiple channels which is ambiguous                                                                   |
 
 ## Development
 

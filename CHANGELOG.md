@@ -5,7 +5,7 @@
 ## Features
 - [queue package] chan with dynamic capacity
 - [reactor package] reactor design mode for resolving sync locking and concurrent controlling.
-
+- [chanpool package] do select for multiple channels which is ambiguous
 ---
 # [v0.9.0] 2024-01-12
 ## Features
