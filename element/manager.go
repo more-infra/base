@@ -53,7 +53,9 @@ func (m *Manager) NewElement() *Element {
 // When multiple threads/goroutine call Join with the same input ELEMENT, only one ELEMENT will be inserted.
 // If the ELEMENT is already exists in the manager(which judges by the autoincrement id of the ELEMENT), it will return the exists ELEMENT.
 // So return value is the inserted ELEMENT or the ELEMENT already exists.
+//
 // * ---------------- About the Initialization ---------------- *
+//
 // The initialization function will be called only one times when the ELEMENT inserted into Manager successfully, join will wait it complete and return.
 // The recommended way is using the returned ELEMENT object, and do ELEMENT.Initialization().Wait(),
 // because the Join will return immediately when the ELEMENT is already exists.
