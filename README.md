@@ -1,7 +1,10 @@
 # more-infra/base
 
 [![Github CI](https://github.com/more-infra/base/actions/workflows/testing.yml/badge.svg)]()
+[![Go Report Card](https://goreportcard.com/badge/github.com/more-infra/base)](https://goreportcard.com/report/github.com/more-infra/base)
+[![Release](https://img.shields.io/github/v/release/more-infra/base.svg?style=flat-square)](https://github.com/more-infra/base)
 [![Go Reference](https://pkg.go.dev/badge/github.com/more-infra/base.svg)](https://pkg.go.dev/github.com/more-infra/base)
+[![License: MIT](https://img.shields.io/badge/License-MIT-orange)](https://opensource.org/licenses/MIT)
 
 The basic structures and design modes which could be used by projects.  
 It includes many typical and common data structures,functions for basic using.

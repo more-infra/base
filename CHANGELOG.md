@@ -1,6 +1,6 @@
 # [v0.9.1] 2024-01-19
 ## Documents
-- README add go doc, github-ci badges
+- README add go doc, github-ci, release, go report, MIT-License badges
 - element, status package comment for go doc format fixed
 ## Features
 - [queue package] chan with dynamic capacity
