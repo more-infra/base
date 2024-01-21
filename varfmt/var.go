@@ -124,32 +124,32 @@ func WithVarScopeSyntax(syntax ScopeSyntax) Option {
 
 // Format will replace all variable conformed the syntax to the value by VarProvider.
 // When the VarProvider return error with the variable, the Format will interrupt and return error.
-func (this *Formatter) Format(str string) (string, error) {
+func (fm *Formatter) Format(str string) (string, error) {
 	var (
 		scheme *varScheme
 		err    error
 	)
-	if -1 == strings.Index(str, this.prefixSyntax) {
+	if -1 == strings.Index(str, fm.prefixSyntax) {
 		return str, nil
 	}
-	scheme = this.cache.get(str, this.prefixSyntax, func(s string) *varScheme {
-		return this.parse(str)
+	scheme = fm.cache.get(str, fm.prefixSyntax, func(s string) *varScheme {
+		return fm.parse(str)
 	})
 	err = scheme.error()
 	if err != nil {
 		return "", err
 	}
-	return scheme.evaluate(this.pvd)
+	return scheme.evaluate(fm.pvd)
 }
 
-func (this *Formatter) parse(str string) *varScheme {
-	va := strings.Split(str, this.prefixSyntax)
+func (fm *Formatter) parse(str string) *varScheme {
+	va := strings.Split(str, fm.prefixSyntax)
 	scheme := newScheme()
 	scheme.push(&field{
 		s: va[0],
 	})
 	for n := 1; n != len(va); n++ {
-		f, err := this.parseField(va[n])
+		f, err := fm.parseField(va[n])
 		if err != nil {
 			return newErrorScheme(err.WithField("string", str))
 		}
@@ -158,7 +158,7 @@ func (this *Formatter) parse(str string) *varScheme {
 	return scheme
 }
 
-func (this *Formatter) parseField(f string) (*field, *base.Error) {
+func (fm *Formatter) parseField(f string) (*field, *base.Error) {
 	if len(f) == 0 {
 		return nil, base.NewErrorWithType(ErrTypeVarStringInvalid, ErrVarStringEmpty).
 			WithMessage("empty var name found")
@@ -167,9 +167,9 @@ func (this *Formatter) parseField(f string) (*field, *base.Error) {
 		v string
 		s string
 	)
-	if f[0] != ScopeSyntaxValue[this.scopeSyntax].Begin {
-		if this.scopeSyntaxRequire == ScopeSyntaxRequired {
-			s = this.prefixSyntax + f
+	if f[0] != ScopeSyntaxValue[fm.scopeSyntax].Begin {
+		if fm.scopeSyntaxRequire == ScopeSyntaxRequired {
+			s = fm.prefixSyntax + f
 		} else {
 			va := strings.Fields(f)
 			if len(va) == 0 {
@@ -182,10 +182,10 @@ func (this *Formatter) parseField(f string) (*field, *base.Error) {
 			}
 		}
 	} else {
-		r := strings.Index(f, string(ScopeSyntaxValue[this.scopeSyntax].End))
+		r := strings.Index(f, string(ScopeSyntaxValue[fm.scopeSyntax].End))
 		if r == -1 {
 			return nil, base.NewErrorWithType(ErrTypeVarStringInvalid, ErrVarFormatInvalid).
-				WithMessage(fmt.Sprintf("syntax %s not found", string(ScopeSyntaxValue[this.scopeSyntax].End))).
+				WithMessage(fmt.Sprintf("syntax %s not found", string(ScopeSyntaxValue[fm.scopeSyntax].End))).
 				WithField("field", f)
 		}
 		v = f[1:r]
@@ -233,20 +233,20 @@ func WithCacheCapacity(capacity int) CacheOption {
 	}
 }
 
-func (this *VarParseCache) get(str string, syntax string, creator func(string) *varScheme) *varScheme {
+func (c *VarParseCache) get(str string, syntax string, creator func(string) *varScheme) *varScheme {
 	key := syntax + "->" + str
-	v, ok := this.cache.Get(key)
+	v, ok := c.cache.Get(key)
 	if ok {
 		return v
 	}
-	this.mu.Lock()
-	defer this.mu.Unlock()
-	v, ok = this.cache.Get(key)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	v, ok = c.cache.Get(key)
 	if ok {
 		return v
 	}
 	v = creator(str)
-	this.cache.Add(key, v)
+	c.cache.Add(key, v)
 	return v
 }
 
@@ -270,17 +270,17 @@ func newErrorScheme(err error) *varScheme {
 	}
 }
 
-func (this *varScheme) push(f *field) {
-	this.fields = append(this.fields, f)
+func (s *varScheme) push(f *field) {
+	s.fields = append(s.fields, f)
 }
 
-func (this *varScheme) error() error {
-	return this.err
+func (s *varScheme) error() error {
+	return s.err
 }
 
-func (this *varScheme) evaluate(pvd VarProvider) (string, error) {
+func (s *varScheme) evaluate(pvd VarProvider) (string, error) {
 	var value string
-	for _, f := range this.fields {
+	for _, f := range s.fields {
 		if len(f.v) == 0 {
 			value += f.s
 			continue
