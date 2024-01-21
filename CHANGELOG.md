@@ -1,3 +1,7 @@
+# [v0.9.1] 2024-01-26
+## Features
+- [varfmt] format string with variable by custom syntax and variable value provider
+---
 # [v0.9.1] 2024-01-19
 ## Documents
 - README add go doc, github-ci, release, go report, MIT-License badges

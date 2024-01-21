@@ -23,6 +23,7 @@ It includes many typical and common data structures,functions for basic using.
 | chanpool | do select for multiple channels which is ambiguous                                                                   |
 | trigger  | pack input elements stream to batch by controlling params or function                                                |
 | values   | strings matcher with multiple regex and wildcard pre-built                                                           |
+| varfmt   | format string with variable by custom syntax and variable value provider                                             |
 
 ## Development
 
