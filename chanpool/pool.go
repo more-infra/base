@@ -62,7 +62,7 @@ type Pool struct {
 */
 // Notice: Dispose() will be called when the Pool is not using.
 // Methods of Pool are all not thread-safe.
-func NewPool(quit chan struct{}, refresh chan struct{}) *Pool {
+func NewPool(quit <-chan struct{}, refresh <-chan struct{}) *Pool {
 	p := &Pool{
 		pos:    -1,
 		result: make(chan interface{}),
