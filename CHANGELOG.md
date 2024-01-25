@@ -2,6 +2,7 @@
 ## Features
 - [varfmt] format string with variable by custom syntax and variable value provider
 - [scheduler] dynamic goroutine pool for executing tasks, which could be controlled by custom options
+- [ util/algo ] algorithm utility such as md5, base64, zlib
 ---
 # [v0.9.1] 2024-01-19
 ## Documents
