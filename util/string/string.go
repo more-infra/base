@@ -1,10 +1,8 @@
 package stringutil
 
 import (
-	"bytes"
 	"errors"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -53,20 +51,4 @@ func ToString(v interface{}) (string, error) {
 	default:
 		return "", errors.New("could not convert to string type")
 	}
-}
-
-func ReadLines(s string) []string {
-	buf := bytes.NewBufferString(s)
-	var (
-		line  string
-		err   error
-		lines []string
-	)
-	for err == nil {
-		line, err = buf.ReadString('\n')
-		if len(line) != 0 {
-			lines = append(lines, strings.TrimSpace(line))
-		}
-	}
-	return lines
 }
