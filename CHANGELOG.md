@@ -1,8 +1,11 @@
+# [v0.9.3] 2024-02-02
+## Features
+- [kv package] convert struct object with tag defined to a map[string]interface{} like json/yaml Marshal do.
 # [v0.9.2] 2024-01-26
 ## Features
-- [varfmt] format string with variable by custom syntax and variable value provider
-- [scheduler] dynamic goroutine pool for executing tasks, which could be controlled by custom options
-- [ util/algo ] algorithm utility such as md5, base64, zlib
+- [varfmt package] format string with variable by custom syntax and variable value provider
+- [scheduler package] dynamic goroutine pool for executing tasks, which could be controlled by custom options
+- [util/algo package] algorithm utility such as md5, base64, zlib
 ---
 # [v0.9.1] 2024-01-19
 ## Documents
