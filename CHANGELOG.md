@@ -1,6 +1,7 @@
 # [v0.9.4] 2024-02-09
 ## Enhance
 - [kv package] add supports convert map[string]interface{} to object.
+---
 # [v0.9.3] 2024-02-02
 ## Features
 - [kv package] convert struct object with tag defined to a map[string]interface{} like json/yaml Marshal do.
