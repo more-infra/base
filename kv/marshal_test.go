@@ -4,33 +4,33 @@ import (
 	"testing"
 )
 
-func TestNilPointer(t *testing.T) {
+func TestMarshalNilPointer(t *testing.T) {
 	m := NewMapper()
 	type Object struct {
 		N int `kv:"n"`
 	}
 	var nilObject *Object
 	kv := m.ObjectToMap(nilObject)
-	assert(t, kv, map[string]interface{}{})
+	assertMap(t, kv, map[string]interface{}{})
 }
 
-func TestEmptyInterface(t *testing.T) {
+func TestMarshalEmptyInterface(t *testing.T) {
 	m := NewMapper()
 	var v interface{}
 	kv := m.ObjectToMap(v)
-	assert(t, kv, map[string]interface{}{})
+	assertMap(t, kv, map[string]interface{}{})
 }
 
-func TestFieldEmptyInterface(t *testing.T) {
+func TestMarshalFieldEmptyInterface(t *testing.T) {
 	m := NewMapper()
 	type Object struct {
 		V interface{} `kv:"n,omitempty"`
 	}
 	kv := m.ObjectToMap(&Object{})
-	assert(t, kv, map[string]interface{}{})
+	assertMap(t, kv, map[string]interface{}{})
 }
 
-func TestEmptyTagNameFormat(t *testing.T) {
+func TestMarshalEmptyTagNameFormat(t *testing.T) {
 	type Object struct {
 		FieldName string
 	}
@@ -38,31 +38,31 @@ func TestEmptyTagNameFormat(t *testing.T) {
 	m := NewMapper().
 		WithEmptyTagFormat(Ignore)
 	kv := m.ObjectToMap(Object{FieldName: "field_value"})
-	assert(t, kv, map[string]interface{}{})
+	assertMap(t, kv, map[string]interface{}{})
 
 	m = NewMapper().
 		WithEmptyTagFormat(OriginFormat)
 	kv = m.ObjectToMap(Object{FieldName: "field_value"})
-	assert(t, kv, map[string]interface{}{
+	assertMap(t, kv, map[string]interface{}{
 		"FieldName": "field_value",
 	})
 
 	m = NewMapper().
 		WithEmptyTagFormat(CamelCaseFormat)
 	kv = m.ObjectToMap(Object{FieldName: "field_value"})
-	assert(t, kv, map[string]interface{}{
+	assertMap(t, kv, map[string]interface{}{
 		"FieldName": "field_value",
 	})
 
 	m = NewMapper().
 		WithEmptyTagFormat(UnderScoreCaseFormat)
 	kv = m.ObjectToMap(Object{FieldName: "field_value"})
-	assert(t, kv, map[string]interface{}{
+	assertMap(t, kv, map[string]interface{}{
 		"field_name": "field_value",
 	})
 }
 
-func TestNestStruct(t *testing.T) {
+func TestMarshalNestStruct(t *testing.T) {
 	m := NewMapper().
 		WithNestConcat(".")
 	type NestObject struct {
@@ -74,12 +74,12 @@ func TestNestStruct(t *testing.T) {
 	kv := m.ObjectToMap(&Object{
 		Nest: NestObject{NS: "ns_value"},
 	})
-	assert(t, kv, map[string]interface{}{
+	assertMap(t, kv, map[string]interface{}{
 		"nest.ns": "ns_value",
 	})
 }
 
-func TestSlice(t *testing.T) {
+func TestMarshalSlice(t *testing.T) {
 	m := NewMapper().
 		WithSliceOrderConcat("*")
 	type Object struct {
@@ -88,15 +88,15 @@ func TestSlice(t *testing.T) {
 	kv := m.ObjectToMap(&Object{
 		Slice: []string{"1", "2"},
 	})
-	assert(t, kv, map[string]interface{}{
-		"slice":   "1",
+	assertMap(t, kv, map[string]interface{}{
+		"slice*1": "1",
 		"slice*2": "2",
 	})
 
 	kv = m.ObjectToMap(&Object{
 		Slice: []string{},
 	})
-	assert(t, kv, map[string]interface{}{})
+	assertMap(t, kv, map[string]interface{}{})
 
 	type EmptyObject struct {
 		Slice []string `kv:"slice"`
@@ -104,7 +104,7 @@ func TestSlice(t *testing.T) {
 	kv = m.ObjectToMap(&EmptyObject{
 		Slice: []string{},
 	})
-	assert(t, kv, map[string]interface{}{})
+	assertMap(t, kv, map[string]interface{}{})
 
 	type NilObject struct {
 		Slice []string `kv:"slice"`
@@ -112,12 +112,12 @@ func TestSlice(t *testing.T) {
 	kv = m.ObjectToMap(&NilObject{
 		Slice: nil,
 	})
-	assert(t, kv, map[string]interface{}{
+	assertMap(t, kv, map[string]interface{}{
 		"slice": nil,
 	})
 }
 
-func TestMap(t *testing.T) {
+func TestMarshalMap(t *testing.T) {
 	m := NewMapper()
 	type NestObject struct {
 		NS string `kv:"ns"`
@@ -137,11 +137,11 @@ func TestMap(t *testing.T) {
 			"nest_slice": []string{"slice_value_a", "slice_value_b"},
 		},
 	})
-	assert(t, kv, map[string]interface{}{
+	assertMap(t, kv, map[string]interface{}{
 		"map_string":                 "string_value",
 		"map_nest_object_ns":         "ns_value",
 		"map_nest_object_pointer_ns": "ns_value",
-		"map_nest_slice":             "slice_value_a",
+		"map_nest_slice_1":           "slice_value_a",
 		"map_nest_slice_2":           "slice_value_b",
 	})
 }
@@ -167,7 +167,7 @@ func TestSplitWords(t *testing.T) {
 	}
 }
 
-func assert(t *testing.T, result map[string]interface{}, expected map[string]interface{}) {
+func assertMap(t *testing.T, result map[string]interface{}, expected map[string]interface{}) {
 	if len(result) != len(expected) {
 		t.Fatal("map len is not equal")
 		return

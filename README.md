@@ -25,8 +25,8 @@ It includes many typical and common data structures,functions for basic using.
 | values    | strings matcher with multiple regex and wildcard pre-built                                                           |
 | varfmt    | format string with variable by custom syntax and variable value provider                                             |
 | scheduler | dynamic goroutine pool for executing tasks, which could be controlled by custom options                              |
-| kv        | convert struct object with tag defined to a map[string]interface{} like json/yaml Marshal do.                        |
-## Development
+| kv        | convert between struct object with tag defined and map[string]interface{} like json/yaml Marshal/Unmarshal do.       |
 
+## Development
 Now, this project is in developing stage, so the code is changing frequently.
 A new version will be published every week at Friday.
