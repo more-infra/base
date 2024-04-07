@@ -153,16 +153,18 @@ func (e *Error) WithLabel(l string) *Error {
 // Error defines the standard interface for error
 func (e *Error) Error() string {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("err=%s", e.Err.Error()))
+	builder.WriteString(fmt.Sprintf("err=%s\n", e.Err.Error()))
 	if len(e.Msg) != 0 {
-		builder.WriteString(fmt.Sprintf(", msg=%s", e.Message()))
+		builder.WriteString(fmt.Sprintf(", msg=%s\n", e.Message()))
 	}
-	builder.WriteString(fmt.Sprintf("labels=%s", strings.Join(e.Labels, ",")))
+	if len(e.Labels) != 0 {
+		builder.WriteString(fmt.Sprintf("labels=%s\n", strings.Join(e.Labels, ",")))
+	}
 	for k, v := range e.Fields {
-		builder.WriteString(fmt.Sprintf(", %s=%+v", k, v))
+		builder.WriteString(fmt.Sprintf(", %s=%+v\n", k, v))
 	}
 	if len(e.Stack) != 0 {
-		builder.WriteString(fmt.Sprintf(", stack:%s", e.Stack))
+		builder.WriteString(fmt.Sprintf(", stack:%s\n", e.Stack))
 	}
 	return builder.String()
 }
