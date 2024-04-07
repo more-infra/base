@@ -35,7 +35,7 @@ type Error struct {
 	// Labels defines many labels of the error object, when used in searching scenes.
 	// It will be added when call WithLabel method.
 	// When do formatting, it will be split with ",".
-	Labels []string
+	Labels map[string]struct{}
 
 	// Msg defines additional comment for the error.
 	// It will be added when call WithMessage method.
@@ -146,7 +146,7 @@ func (e *Error) WithMessage(msg string) *Error {
 }
 
 func (e *Error) WithLabel(l string) *Error {
-	e.Labels = append(e.Labels, l)
+	e.Labels[strings.ToLower(l)] = struct{}{}
 	return e
 }
 
@@ -158,7 +158,17 @@ func (e *Error) Error() string {
 		builder.WriteString(fmt.Sprintf(", msg=%s\n", e.Message()))
 	}
 	if len(e.Labels) != 0 {
-		builder.WriteString(fmt.Sprintf("labels=%s\n", strings.Join(e.Labels, ",")))
+		builder.WriteString("labels=")
+		var split bool
+		for l := range e.Labels {
+			if !split {
+				split = true
+			} else {
+				builder.WriteString(",")
+			}
+			builder.WriteString(l)
+		}
+		builder.WriteString("\n")
 	}
 	for k, v := range e.Fields {
 		builder.WriteString(fmt.Sprintf(", %s=%+v\n", k, v))
