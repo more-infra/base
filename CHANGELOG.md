@@ -1,4 +1,7 @@
 # [v0.9.5]
+## Enhance
+- [base] OriginalError use recursion check.
+- [base] Error() format adjust, use "\n" split each fields.
 ## Breaking Change
 - [trigger package] replace handler param callback by queue.Buffer for receiving the elements batch pack by trigger.
 ---

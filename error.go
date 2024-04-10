@@ -4,6 +4,7 @@ import (
 	"fmt"
 	stringutil "github.com/more-infra/base/util/string"
 	"runtime/debug"
+	"sort"
 	"strings"
 )
 
@@ -103,11 +104,13 @@ func ErrorType(err error) string {
 
 // OriginalError return Err field of the Error object, it will return the input object self when it's not type of *base.Error
 func OriginalError(err error) error {
-	e, ok := err.(*Error)
-	if !ok {
-		return e
+	for {
+		e, ok := err.(*Error)
+		if !ok {
+			return err
+		}
+		err = e.Err
 	}
-	return e.Err
 }
 
 func (e *Error) WithType(t string) *Error {
@@ -158,17 +161,14 @@ func (e *Error) Error() string {
 		builder.WriteString(fmt.Sprintf(", msg=%s\n", e.Message()))
 	}
 	if len(e.Labels) != 0 {
-		builder.WriteString("labels=")
-		var split bool
+		sortedLabels := make([]string, len(e.Labels))
+		var n int
 		for l := range e.Labels {
-			if !split {
-				split = true
-			} else {
-				builder.WriteString(",")
-			}
-			builder.WriteString(l)
+			sortedLabels[n] = l
+			n++
 		}
-		builder.WriteString("\n")
+		sort.Strings(sortedLabels)
+		builder.WriteString(fmt.Sprintf("labels=%s\n", strings.Join(sortedLabels, ",")))
 	}
 	for k, v := range e.Fields {
 		builder.WriteString(fmt.Sprintf(", %s=%+v\n", k, v))
