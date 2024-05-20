@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -58,6 +59,13 @@ func (m *Mapper) handleField(ctx *context) {
 		ctx.meta.t = ctx.value.Type()
 		m.handleField(ctx)
 		return
+	}
+	switch v.(type) {
+	case time.Time:
+		m.handleBasic(ctx)
+	case time.Duration:
+		m.handleBasic(ctx)
+	default:
 	}
 	switch ctx.value.Type().Kind() {
 	case reflect.Struct:

@@ -1,4 +1,6 @@
 # [v0.9.5]
+## Bugs
+- [kv package] fix marshal failed for time.Time, time.Duration type marshal as struct
 ## Features
 - [kv package] add MapperMarshaller interface for custom defined data marshaller
 ## Enhance
