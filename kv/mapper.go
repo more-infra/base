@@ -1,6 +1,8 @@
 package kv
 
-import "errors"
+import (
+	"errors"
+)
 
 const (
 	ErrTypeUnmarshalInvalidType = "kv.unmarshal_invalid_type"
@@ -10,6 +12,12 @@ var (
 	ErrObjectInvalidType    = errors.New("object to unmarshal is not struct type")
 	ErrUnsupportedFieldType = errors.New("type of field to unmarshal is not supported")
 )
+
+// MapperMarshaller is used for custom defined type for marshal to a general interface{} type,
+// which could be handled by Mapper. It works as the yaml.MarshalYAML interface do.
+type MapperMarshaller interface {
+	MapperMarshal() interface{}
+}
 
 // Mapper helps transform struct object between map[string]interface{} with custom options.
 // It supports nested map, slice, array and struct, syntax is similar as json/yaml tag used by Marshal.

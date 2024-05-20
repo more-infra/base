@@ -146,6 +146,41 @@ func TestMarshalMap(t *testing.T) {
 	})
 }
 
+type ObjectMarshalInt struct {
+	N int                `kv:"n"`
+	F ObjectMarshalFloat `kv:"float"`
+}
+
+type ObjectMarshalFloat struct {
+	F float64 `kv:"f"`
+}
+
+func (this *ObjectMarshalFloat) MapperMarshal() interface{} {
+	return this.F
+}
+
+func TestMarshaller(t *testing.T) {
+	type Object struct {
+		Int ObjectMarshalInt `kv:"int"`
+		S   string           `kv:"s"`
+	}
+	mapper := NewMapper()
+	m := mapper.ObjectToMap(&Object{
+		Int: ObjectMarshalInt{
+			N: 99,
+			F: ObjectMarshalFloat{
+				F: 66.66,
+			},
+		},
+		S: "88",
+	})
+	assertMap(t, m, map[string]interface{}{
+		"s":           "88",
+		"int_n":       99,
+		"int_float_f": 66.66,
+	})
+}
+
 func TestSplitWords(t *testing.T) {
 	valueExpected := map[string][]string{
 		"FirstDay":     {"First", "Day"},

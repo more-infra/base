@@ -1,4 +1,6 @@
 # [v0.9.5]
+## Features
+- [kv package] add MapperMarshaller interface for custom defined data marshaller
 ## Enhance
 - [base] OriginalError use recursion check.
 - [base] Error() format adjust, use "\n" split each fields.

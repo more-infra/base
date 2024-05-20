@@ -50,6 +50,15 @@ func (m *Mapper) handleField(ctx *context) {
 		ctx.value = ctx.value.Elem()
 		t = ctx.value.Type().Kind()
 	}
+	v := ctx.value.Interface()
+	marshaller, ok := v.(MapperMarshaller)
+	if ok {
+		v := marshaller.MapperMarshal()
+		ctx.value = reflect.ValueOf(v)
+		ctx.meta.t = ctx.value.Type()
+		m.handleField(ctx)
+		return
+	}
 	switch ctx.value.Type().Kind() {
 	case reflect.Struct:
 		m.handleStruct(ctx)
