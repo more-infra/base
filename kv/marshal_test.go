@@ -146,38 +146,31 @@ func TestMarshalMap(t *testing.T) {
 	})
 }
 
-type ObjectMarshalInt struct {
-	N int                `kv:"n"`
-	F ObjectMarshalFloat `kv:"float"`
-}
-
 type ObjectMarshalFloat struct {
-	F float64 `kv:"f"`
+	f float64
 }
 
-func (this *ObjectMarshalFloat) MapperMarshal() interface{} {
-	return this.F
+func (o ObjectMarshalFloat) MapperMarshal() interface{} {
+	return o.f
 }
 
 func TestMarshaller(t *testing.T) {
+	type NestObject struct {
+		Float ObjectMarshalFloat `kv:"float"`
+	}
 	type Object struct {
-		Int ObjectMarshalInt `kv:"int"`
-		S   string           `kv:"s"`
+		Float     ObjectMarshalFloat `kv:"float"`
+		NestFloat NestObject         `kv:"nest"`
 	}
 	mapper := NewMapper()
 	m := mapper.ObjectToMap(&Object{
-		Int: ObjectMarshalInt{
-			N: 99,
-			F: ObjectMarshalFloat{
-				F: 66.66,
-			},
-		},
-		S: "88",
+		Float: ObjectMarshalFloat{f: 66.66},
+		NestFloat: NestObject{
+			Float: ObjectMarshalFloat{f: 88.88}},
 	})
 	assertMap(t, m, map[string]interface{}{
-		"s":           "88",
-		"int_n":       99,
-		"int_float_f": 66.66,
+		"float":      66.66,
+		"nest_float": 88.88,
 	})
 }
 

@@ -15,6 +15,8 @@ var (
 
 // MapperMarshaller is used for custom defined type for marshal to a general interface{} type,
 // which could be handled by Mapper. It works as the yaml.MarshalYAML interface do.
+// NOTICE: Implement the MapperMarshaller interface with Non-Pointer receiver as usual,
+// or it will not be called when the field pointer could not be used.
 type MapperMarshaller interface {
 	MapperMarshal() interface{}
 }

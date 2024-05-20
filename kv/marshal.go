@@ -51,15 +51,25 @@ func (m *Mapper) handleField(ctx *context) {
 		ctx.value = ctx.value.Elem()
 		t = ctx.value.Type().Kind()
 	}
-	v := ctx.value.Interface()
-	marshaller, ok := v.(MapperMarshaller)
+
+	var (
+		v          = ctx.value.Interface()
+		marshaller MapperMarshaller
+		ok         bool
+	)
+	if ctx.value.CanAddr() {
+		marshaller, ok = ctx.value.Addr().Interface().(MapperMarshaller)
+	}
+	if !ok {
+		marshaller, ok = v.(MapperMarshaller)
+	}
 	if ok {
-		v := marshaller.MapperMarshal()
-		ctx.value = reflect.ValueOf(v)
+		ctx.value = reflect.ValueOf(marshaller.MapperMarshal())
 		ctx.meta.t = ctx.value.Type()
 		m.handleField(ctx)
 		return
 	}
+
 	switch v.(type) {
 	case time.Time:
 		m.handleBasic(ctx)
