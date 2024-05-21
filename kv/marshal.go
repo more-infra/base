@@ -73,8 +73,10 @@ func (m *Mapper) handleField(ctx *context) {
 	switch v.(type) {
 	case time.Time:
 		m.handleBasic(ctx)
+		return
 	case time.Duration:
 		m.handleBasic(ctx)
+		return
 	default:
 	}
 	switch ctx.value.Type().Kind() {
