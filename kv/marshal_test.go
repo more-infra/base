@@ -153,6 +153,7 @@ type ObjectMarshalMap struct {
 
 func (o ObjectMarshalMap) MapperMarshal() interface{} {
 	return map[string]interface{}{
+		"":            o.t.Format("2006-01-02 15:04:05"),
 		"time_string": o.t.String(),
 		"time_unix":   o.t.Unix(),
 		"time_date":   o.t.Format("2006-01-02"),
@@ -181,6 +182,7 @@ func TestMarshaller(t *testing.T) {
 	ts := tm.String()
 	tu := tm.Unix()
 	td := tm.Format("2006-01-02")
+	tt := tm.Format("2006-01-02 15:04:05")
 	mapper := NewMapper()
 	m := mapper.ObjectToMap(&Object{
 		Float: ObjectMarshalFloat{f: 66.66},
@@ -194,6 +196,7 @@ func TestMarshaller(t *testing.T) {
 		"float":           66.66,
 		"nest_float":      88.88,
 		"p_nest_float":    99.99,
+		"map":             tt,
 		"map_time_string": ts,
 		"map_time_unix":   tu,
 		"map_time_date":   td,

@@ -6,6 +6,7 @@
 ## Enhance
 - [base] OriginalError use recursion check.
 - [base] Error() format adjust, use "\n" split each fields.
+- [kv package] ObjectToStruct map type support empty key
 ## Breaking Change
 - [trigger package] replace handler param callback by queue.Buffer for receiving the elements batch pack by trigger.
 ---

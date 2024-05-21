@@ -113,11 +113,15 @@ func (m *Mapper) handleStruct(ctx *context) {
 func (m *Mapper) handleMap(ctx *context) {
 	for _, key := range ctx.value.MapKeys() {
 		v := ctx.value.MapIndex(key)
+		k := ctx.meta.key
+		if key.String() != "" {
+			k += m.nestConcat + key.String()
+		}
 		m.handleField(&context{
 			kv: ctx.kv,
 			meta: &fieldMeta{
 				t:         v.Type(),
-				key:       ctx.meta.key + m.nestConcat + key.String(),
+				key:       k,
 				omitempty: false,
 			},
 			value: v,
