@@ -1,3 +1,15 @@
+# [v0.9.5] 2024-05-24
+## Breaking Change
+- [trigger package] replace handler param callback by queue.Buffer for receiving the elements batch pack by trigger.
+## Bugs
+- [kv package] fix marshal failed for time.Time, time.Duration type marshal as struct
+## Features
+- [kv package] add MapperMarshaller interface for custom defined data marshaller
+## Enhance
+- [base] OriginalError use recursion check.
+- [base] Error() format adjust, use "\n" split each fields.
+- [kv package] ObjectToStruct map type support empty key
+---
 # [v0.9.4] 2024-02-09
 ## Enhance
 - [kv package] add supports convert map[string]interface{} to object.
@@ -5,7 +17,6 @@
 # [v0.9.3] 2024-02-02
 ## Features
 - [kv package] convert struct object with tag defined to a map[string]interface{} like json/yaml Marshal do.
----
 # [v0.9.2] 2024-01-26
 ## Features
 - [varfmt package] format string with variable by custom syntax and variable value provider

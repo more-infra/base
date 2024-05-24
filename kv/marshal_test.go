@@ -2,6 +2,7 @@ package kv
 
 import (
 	"testing"
+	"time"
 )
 
 func TestMarshalNilPointer(t *testing.T) {
@@ -143,6 +144,62 @@ func TestMarshalMap(t *testing.T) {
 		"map_nest_object_pointer_ns": "ns_value",
 		"map_nest_slice_1":           "slice_value_a",
 		"map_nest_slice_2":           "slice_value_b",
+	})
+}
+
+type ObjectMarshalMap struct {
+	t time.Time
+}
+
+func (o ObjectMarshalMap) MapperMarshal() interface{} {
+	return map[string]interface{}{
+		"":            o.t.Format("2006-01-02 15:04:05"),
+		"time_string": o.t.String(),
+		"time_unix":   o.t.Unix(),
+		"time_date":   o.t.Format("2006-01-02"),
+	}
+}
+
+type ObjectMarshalFloat struct {
+	f float64
+}
+
+func (o ObjectMarshalFloat) MapperMarshal() interface{} {
+	return o.f
+}
+
+func TestMarshaller(t *testing.T) {
+	type NestObject struct {
+		Float ObjectMarshalFloat `kv:"float"`
+	}
+	type Object struct {
+		Float            ObjectMarshalFloat `kv:"float"`
+		NestFloat        NestObject         `kv:"nest"`
+		PointerNestFloat *NestObject        `kv:"p_nest"`
+		Map              ObjectMarshalMap   `kv:"map"`
+	}
+	tm := time.Date(2024, 5, 20, 17, 0, 0, 0, time.Local)
+	ts := tm.String()
+	tu := tm.Unix()
+	td := tm.Format("2006-01-02")
+	tt := tm.Format("2006-01-02 15:04:05")
+	mapper := NewMapper()
+	m := mapper.ObjectToMap(&Object{
+		Float: ObjectMarshalFloat{f: 66.66},
+		NestFloat: NestObject{
+			Float: ObjectMarshalFloat{f: 88.88}},
+		PointerNestFloat: &NestObject{
+			Float: ObjectMarshalFloat{f: 99.99}},
+		Map: ObjectMarshalMap{t: tm},
+	})
+	assertMap(t, m, map[string]interface{}{
+		"float":           66.66,
+		"nest_float":      88.88,
+		"p_nest_float":    99.99,
+		"map":             tt,
+		"map_time_string": ts,
+		"map_time_unix":   tu,
+		"map_time_date":   td,
 	})
 }
 

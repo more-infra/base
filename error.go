@@ -4,6 +4,7 @@ import (
 	"fmt"
 	stringutil "github.com/more-infra/base/util/string"
 	"runtime/debug"
+	"sort"
 	"strings"
 )
 
@@ -35,7 +36,7 @@ type Error struct {
 	// Labels defines many labels of the error object, when used in searching scenes.
 	// It will be added when call WithLabel method.
 	// When do formatting, it will be split with ",".
-	Labels []string
+	Labels map[string]struct{}
 
 	// Msg defines additional comment for the error.
 	// It will be added when call WithMessage method.
@@ -103,11 +104,13 @@ func ErrorType(err error) string {
 
 // OriginalError return Err field of the Error object, it will return the input object self when it's not type of *base.Error
 func OriginalError(err error) error {
-	e, ok := err.(*Error)
-	if !ok {
-		return e
+	for {
+		e, ok := err.(*Error)
+		if !ok {
+			return err
+		}
+		err = e.Err
 	}
-	return e.Err
 }
 
 func (e *Error) WithType(t string) *Error {
@@ -146,23 +149,32 @@ func (e *Error) WithMessage(msg string) *Error {
 }
 
 func (e *Error) WithLabel(l string) *Error {
-	e.Labels = append(e.Labels, l)
+	e.Labels[strings.ToLower(l)] = struct{}{}
 	return e
 }
 
 // Error defines the standard interface for error
 func (e *Error) Error() string {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("err=%s", e.Err.Error()))
+	builder.WriteString(fmt.Sprintf("err=%s\n", e.Err.Error()))
 	if len(e.Msg) != 0 {
-		builder.WriteString(fmt.Sprintf(", msg=%s", e.Message()))
+		builder.WriteString(fmt.Sprintf(", msg=%s\n", e.Message()))
 	}
-	builder.WriteString(fmt.Sprintf("labels=%s", strings.Join(e.Labels, ",")))
+	if len(e.Labels) != 0 {
+		sortedLabels := make([]string, len(e.Labels))
+		var n int
+		for l := range e.Labels {
+			sortedLabels[n] = l
+			n++
+		}
+		sort.Strings(sortedLabels)
+		builder.WriteString(fmt.Sprintf("labels=%s\n", strings.Join(sortedLabels, ",")))
+	}
 	for k, v := range e.Fields {
-		builder.WriteString(fmt.Sprintf(", %s=%+v", k, v))
+		builder.WriteString(fmt.Sprintf(", %s=%+v\n", k, v))
 	}
 	if len(e.Stack) != 0 {
-		builder.WriteString(fmt.Sprintf(", stack:%s", e.Stack))
+		builder.WriteString(fmt.Sprintf(", stack:%s\n", e.Stack))
 	}
 	return builder.String()
 }

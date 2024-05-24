@@ -2,7 +2,9 @@ package trigger
 
 import (
 	"context"
+	"github.com/more-infra/base/queue"
 	"math/rand"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -28,21 +30,11 @@ func TestCondition(t *testing.T) {
 		expectedSize  int64
 		expectedCount int64
 	)
+
+	receiver := queue.NewBuffer()
+
 	c := context.WithValue(context.Background(), conditionKey, &conditionContext{})
-	tr := NewTrigger(func(ee []interface{}) {
-		var (
-			count     int
-			totalSize int64
-		)
-		for _, e := range ee {
-			entry := e.(*entry)
-			count++
-			totalSize += entry.size
-		}
-		t.Logf("count:[%d]\tsize:[%d]\n", count, totalSize)
-		atomic.AddInt64(&triggerSize, totalSize)
-		atomic.AddInt64(&triggerCount, int64(count))
-	},
+	tr := NewTrigger(receiver,
 		WithMaxCount(10),
 		WithMaxTime(1*time.Second),
 		WithCondition(c, func(ctx context.Context, event string, ee ...interface{}) int {
@@ -69,7 +61,36 @@ func TestCondition(t *testing.T) {
 			}
 			return 0
 		}))
+
 	tr.Start()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case v := <-receiver.Channel():
+				ee := v.([]interface{})
+				if len(ee) == 0 {
+					return
+				}
+				var (
+					count     int
+					totalSize int64
+				)
+				for _, e := range ee {
+					entry := e.(*entry)
+					count++
+					totalSize += entry.size
+				}
+				t.Logf("count:[%d]\tsize:[%d]\n", count, totalSize)
+				atomic.AddInt64(&triggerSize, totalSize)
+				atomic.AddInt64(&triggerCount, int64(count))
+			}
+		}
+	}()
+
 	for n := 0; n != 100; n++ {
 		size := rand.Int63n(int64(n + 1))
 		tr.Add(&entry{
@@ -80,6 +101,7 @@ func TestCondition(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	tr.Stop()
+	wg.Wait()
 	if expectedCount != triggerCount {
 		t.Fatal("count is not expected")
 	}

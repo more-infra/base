@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 	"unicode"
 )
 
@@ -50,6 +51,34 @@ func (m *Mapper) handleField(ctx *context) {
 		ctx.value = ctx.value.Elem()
 		t = ctx.value.Type().Kind()
 	}
+
+	var (
+		v          = ctx.value.Interface()
+		marshaller MapperMarshaller
+		ok         bool
+	)
+	if ctx.value.CanAddr() {
+		marshaller, ok = ctx.value.Addr().Interface().(MapperMarshaller)
+	}
+	if !ok {
+		marshaller, ok = v.(MapperMarshaller)
+	}
+	if ok {
+		ctx.value = reflect.ValueOf(marshaller.MapperMarshal())
+		ctx.meta.t = ctx.value.Type()
+		m.handleField(ctx)
+		return
+	}
+
+	switch v.(type) {
+	case time.Time:
+		m.handleBasic(ctx)
+		return
+	case time.Duration:
+		m.handleBasic(ctx)
+		return
+	default:
+	}
 	switch ctx.value.Type().Kind() {
 	case reflect.Struct:
 		m.handleStruct(ctx)
@@ -86,11 +115,15 @@ func (m *Mapper) handleStruct(ctx *context) {
 func (m *Mapper) handleMap(ctx *context) {
 	for _, key := range ctx.value.MapKeys() {
 		v := ctx.value.MapIndex(key)
+		k := ctx.meta.key
+		if key.String() != "" {
+			k += m.nestConcat + key.String()
+		}
 		m.handleField(&context{
 			kv: ctx.kv,
 			meta: &fieldMeta{
 				t:         v.Type(),
-				key:       ctx.meta.key + m.nestConcat + key.String(),
+				key:       k,
 				omitempty: false,
 			},
 			value: v,

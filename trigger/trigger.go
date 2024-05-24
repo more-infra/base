@@ -2,10 +2,10 @@ package trigger
 
 import (
 	"context"
-	"github.com/eapache/queue"
+	workerqueue "github.com/eapache/queue"
+	"github.com/more-infra/base/queue"
 	"github.com/more-infra/base/runner"
 	"github.com/more-infra/base/status"
-	"sync"
 	"time"
 )
 
@@ -16,27 +16,28 @@ import (
 type Trigger struct {
 	statusController *status.Controller
 	runner           *runner.Runner
-	queue            *queue.Queue
+	queue            *workerqueue.Queue
 	conf             config
-	handler          func([]interface{})
 	addCh            chan interface{}
-	flush            chan *sync.WaitGroup
+	flush            chan struct{}
+	receiver         *queue.Buffer
 }
 
 type Option func(*Trigger)
 
-// NewTrigger create the Trigger, the handler param is the callback for the batch elements which is return by trigger reached.
+// NewTrigger create the Trigger, the receiver param is the queue for receiving the batch elements which is return by trigger reached.
+// Elements in receiver queue is type '[]interface{}'.
 // Option provides trigger setting, such as max_time, max_count or condition defined by yourself.
 // One option would be setting at least, all options could be set together yet.
 // All methods of Trigger are thread-safe.
-func NewTrigger(handler func([]interface{}), ops ...Option) *Trigger {
+func NewTrigger(receiver *queue.Buffer, ops ...Option) *Trigger {
 	c := &Trigger{
 		statusController: status.NewController(),
 		runner:           runner.NewRunner(),
-		queue:            queue.New(),
-		handler:          handler,
+		queue:            workerqueue.New(),
+		receiver:         receiver,
 		addCh:            make(chan interface{}),
-		flush:            make(chan *sync.WaitGroup),
+		flush:            make(chan struct{}),
 	}
 	for _, op := range ops {
 		op(c)
@@ -47,14 +48,14 @@ func NewTrigger(handler func([]interface{}), ops ...Option) *Trigger {
 	return c
 }
 
-// WithMaxTime sets a timer, when it's expired, elements in Trigger will be packed as batch and callback function is called.
+// WithMaxTime sets a timer, when it's expired, elements in Trigger will be packed as batch and send elements batch to receiver queue.
 func WithMaxTime(t time.Duration) Option {
 	return func(tr *Trigger) {
 		tr.conf.maxTime = t
 	}
 }
 
-// WithMaxCount sets the count, when elements in Trigger reach it, the Trigger will pack all elements in it to batch and do callback.
+// WithMaxCount sets the count, when elements in Trigger reach it, the Trigger will pack all elements in it to batch and send elements batch to receiver queue.
 func WithMaxCount(n int) Option {
 	return func(tr *Trigger) {
 		tr.conf.maxCount = n
@@ -135,9 +136,7 @@ func (this *Trigger) Flush() {
 		return
 	}
 	defer this.statusController.ReleaseRunning()
-	var wg sync.WaitGroup
-	this.flush <- &wg
-	wg.Wait()
+	this.flush <- struct{}{}
 }
 
 func (this *Trigger) running() {
@@ -149,8 +148,9 @@ func (this *Trigger) running() {
 			ee = append(ee, this.queue.Remove())
 		}
 		if len(ee) != 0 {
-			this.handler(ee)
+			this.receiver.Push(ee)
 		}
+		this.receiver.Push([]interface{}{})
 		this.runner.Done()
 	}()
 	dur := this.conf.maxTime
@@ -170,8 +170,8 @@ func (this *Trigger) running() {
 			if this.schemeCount() != 0 && dur != 0 {
 				timer.Reset(dur)
 			}
-		case wg := <-this.flush:
-			this.doFlush(wg)
+		case <-this.flush:
+			this.doFlush()
 		case <-timer.C:
 			this.schemeExpired()
 			timer.Reset(dur)
@@ -182,26 +182,16 @@ func (this *Trigger) running() {
 func (this *Trigger) schemeExpired() int {
 	ee := this.popCount(this.queue.Length())
 	if len(ee) != 0 {
-		this.runner.Mark()
-		go func() {
-			this.handler(ee)
-			this.runner.Done()
-		}()
+		this.receiver.Push(ee)
 		this.notifyCondition(EventTimeReached, ee)
 	}
 	return len(ee)
 }
 
-func (this *Trigger) doFlush(wg *sync.WaitGroup) int {
+func (this *Trigger) doFlush() int {
 	ee := this.popCount(this.queue.Length())
 	if len(ee) != 0 {
-		this.runner.Mark()
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			this.handler(ee)
-			this.runner.Done()
-		}()
+		this.receiver.Push(ee)
 	}
 	return len(ee)
 }
@@ -213,11 +203,7 @@ func (this *Trigger) schemeCount() int {
 	var count int
 	for this.queue.Length() >= this.conf.maxCount {
 		ee := this.popCount(this.conf.maxCount)
-		this.runner.Mark()
-		go func() {
-			this.handler(ee)
-			this.runner.Done()
-		}()
+		this.receiver.Push(ee)
 		count += len(ee)
 		this.notifyCondition(EventCountReached, ee)
 	}
@@ -233,11 +219,7 @@ func (this *Trigger) schemeCondition(e interface{}) int {
 	n := condition.f(condition.c, EventConditionScheme, e)
 	if n != 0 {
 		ee := this.popCount(n)
-		this.runner.Mark()
-		go func() {
-			this.handler(ee)
-			this.runner.Done()
-		}()
+		this.receiver.Push(ee)
 		count = len(ee)
 	}
 	return count
