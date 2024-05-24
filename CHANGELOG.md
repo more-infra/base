@@ -1,4 +1,6 @@
-# [v0.9.5]
+# [v0.9.5] 2024-05-24
+## Breaking Change
+- [trigger package] replace handler param callback by queue.Buffer for receiving the elements batch pack by trigger.
 ## Bugs
 - [kv package] fix marshal failed for time.Time, time.Duration type marshal as struct
 ## Features
@@ -7,8 +9,6 @@
 - [base] OriginalError use recursion check.
 - [base] Error() format adjust, use "\n" split each fields.
 - [kv package] ObjectToStruct map type support empty key
-## Breaking Change
-- [trigger package] replace handler param callback by queue.Buffer for receiving the elements batch pack by trigger.
 ---
 # [v0.9.4] 2024-02-09
 ## Enhance
