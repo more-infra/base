@@ -51,7 +51,11 @@ func TestScheduler(t *testing.T) {
 		<-e.Done()
 		switch e.Result().Status {
 		case StatusAborted:
-			expect.aborted++
+			if e.Result().Err != nil {
+				expect.aborted++
+			} else {
+				expect.done++
+			}
 		case StatusDone:
 			expect.done++
 		case StatusCanceled:

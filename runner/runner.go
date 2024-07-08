@@ -29,6 +29,11 @@ func NewRunnerWithContext(ctx context.Context) *Runner {
 	}
 }
 
+// Context return the context of the Runner for controlling by CLoseWait()
+func (r *Runner) Context() context.Context {
+	return r.c
+}
+
 // CloseWait will stop the runner by close the signal channel and wait for the sync.WaitGroup all Done Synchronously
 func (r *Runner) CloseWait() {
 	r.cancel()

@@ -58,10 +58,10 @@ const (
 	// StatusDone means Entity has executed done.
 	StatusDone = "done"
 
-	// StatusCanceled means Entity has canceled when running.
+	// StatusCanceled means Entity has canceled before scheduling for running.
 	StatusCanceled = "canceled"
 
-	// StatusAborted means Entity is aborted before scheduling for running.
+	// StatusAborted means Entity is aborted when running.
 	StatusAborted = "aborted"
 )
 

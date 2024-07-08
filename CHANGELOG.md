@@ -1,3 +1,9 @@
+# [v0.9.6] 2024-06-29
+## BugFix
+- [scheduler package] fix test case TestScheduler FAIL
+## Enhance
+- [runner package] Runner add Context() method for returning the controlling context of the Runner.
+---
 # [v0.9.5] 2024-05-24
 ## Breaking Change
 - [trigger package] replace handler param callback by queue.Buffer for receiving the elements batch pack by trigger.
