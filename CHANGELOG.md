@@ -1,4 +1,6 @@
 # [v0.9.6] 2024-06-29
+## BugFix
+- [scheduler package] fix test case TestScheduler FAIL
 ## Enhance
 - [runner package] Runner add Context() method for returning the controlling context of the Runner.
 ---
