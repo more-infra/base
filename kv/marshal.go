@@ -120,7 +120,7 @@ func (m *Mapper) handleMap(ctx *context) {
 	for _, key := range ctx.value.MapKeys() {
 		v := ctx.value.MapIndex(key)
 		k := ctx.meta.key
-		if key.String() != "" {
+		if len(k) != 0 && len(key.String()) != 0 {
 			k += m.nestConcat + key.String()
 		}
 		m.handleField(&context{
@@ -139,6 +139,9 @@ func (m *Mapper) handleSlice(ctx *context) {
 	for i := 0; i != ctx.value.Len(); i++ {
 		v := ctx.value.Index(i)
 		key := func() string {
+			if len(ctx.meta.key) == 0 {
+				return fmt.Sprintf("%d", i+1)
+			}
 			return fmt.Sprintf("%s%s%d", ctx.meta.key, m.sliceOrderConcat, i+1)
 		}()
 		m.handleField(&context{
