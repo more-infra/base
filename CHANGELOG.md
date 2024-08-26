@@ -1,3 +1,6 @@
+# [v0.9.8] 2024-08-26
+## Enhance
+- [kv package] add supports map input for mapper.Marshal
 # [v0.9.6] 2024-06-29
 ## BugFix
 - [scheduler package] fix test case TestScheduler FAIL

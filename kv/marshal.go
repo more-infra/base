@@ -8,35 +8,20 @@ import (
 	"unicode"
 )
 
-func (m *Mapper) structToMap(obj interface{}) map[string]interface{} {
+func (m *Mapper) objectToMap(obj interface{}) map[string]interface{} {
 	if obj == nil {
-		return make(map[string]interface{})
-	}
-	elm := reflect.ValueOf(obj)
-	for t := elm.Type().Kind(); t == reflect.Pointer || t == reflect.Interface; {
-		if elm.IsZero() {
-			return make(map[string]interface{})
-		}
-		elm = elm.Elem()
-		t = elm.Type().Kind()
-	}
-	t := elm.Type()
-	if t.Kind() != reflect.Struct {
-		return make(map[string]interface{})
+		return map[string]interface{}{}
 	}
 	kv := make(map[string]interface{})
-	for n := 0; n != t.NumField(); n++ {
-		fieldType := t.Field(n)
-		meta := m.parseMeta(fieldType)
-		if len(meta.key) == 0 {
-			continue
-		}
-		m.handleField(&context{
-			kv:    kv,
-			meta:  meta,
-			value: elm.Field(n),
-		})
-	}
+	m.handleField(&context{
+		kv: kv,
+		meta: &fieldMeta{
+			t:         reflect.TypeOf(obj),
+			key:       "",
+			omitempty: true,
+		},
+		value: reflect.ValueOf(obj),
+	})
 	return kv
 }
 
@@ -106,9 +91,28 @@ func (m *Mapper) handleField(ctx *context) {
 }
 
 func (m *Mapper) handleStruct(ctx *context) {
-	fieldKV := m.structToMap(ctx.value.Interface())
-	for k, v := range fieldKV {
-		ctx.kv[ctx.meta.key+m.nestConcat+k] = v
+	t := ctx.value.Type()
+	for n := 0; n != t.NumField(); n++ {
+		fieldType := t.Field(n)
+		meta := m.parseMeta(fieldType)
+		if len(meta.key) == 0 {
+			continue
+		}
+		k := ctx.meta.key
+		if len(k) != 0 {
+			k += m.nestConcat + meta.key
+		} else {
+			k = meta.key
+		}
+		m.handleField(&context{
+			kv: ctx.kv,
+			meta: &fieldMeta{
+				t:         fieldType.Type,
+				key:       k,
+				omitempty: meta.omitempty,
+			},
+			value: ctx.value.Field(n),
+		})
 	}
 }
 

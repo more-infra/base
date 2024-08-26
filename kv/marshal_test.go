@@ -31,6 +31,21 @@ func TestMarshalFieldEmptyInterface(t *testing.T) {
 	assertMap(t, kv, map[string]interface{}{})
 }
 
+func TestMarshalMapValueEmptyInterface(t *testing.T) {
+	m := NewMapper()
+	type Object struct {
+		M map[string]interface{} `kv:"m,omitempty"`
+	}
+	kv := m.ObjectToMap(&Object{
+		M: map[string]interface{}{
+			"n": nil,
+		},
+	})
+	assertMap(t, kv, map[string]interface{}{
+		"m_n": nil,
+	})
+}
+
 func TestMarshalEmptyTagNameFormat(t *testing.T) {
 	type Object struct {
 		FieldName string

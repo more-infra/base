@@ -134,8 +134,9 @@ const (
 
 // ObjectToMap converts object to a map[string]interface{} which is used to save into database.
 // It will process pointer, interface type by auto dereference, when tag "omitempty" is defined, it will ignore the field when it's nil.
+// An input like map[string]interface{} which include object in values is also supported.
 func (m *Mapper) ObjectToMap(obj interface{}) map[string]interface{} {
-	return m.structToMap(obj)
+	return m.objectToMap(obj)
 }
 
 // MapToObject converts a map[string]interface{} which is from database to the object.
