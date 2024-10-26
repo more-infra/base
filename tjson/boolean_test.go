@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestBoolean_UnmarshalJSON(t *testing.T) {
+func TestBooleanUnmarshalJSON(t *testing.T) {
 	type Data struct {
 		EnableStringTrue  Boolean `json:"enable_string_true"`
 		EnableStringFalse Boolean `json:"enable_string_false"`
