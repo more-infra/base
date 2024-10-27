@@ -2,7 +2,8 @@ package tjson
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/more-infra/base"
+	"reflect"
 	"strconv"
 )
 
@@ -46,8 +47,9 @@ func (b *Number) UnmarshalJSON(data []byte) error {
 		if errInt != nil {
 			f, errFloat := strconv.ParseFloat(v, 64)
 			if errFloat != nil {
-				return fmt.Errorf("parse to integer or float both invalid, integer:%s, float64:%s",
-					errInt.Error(), errFloat.Error())
+				return base.NewErrorWithType(ErrTypeNumberUnmarshalFailed, ErrNumberTypeStringInvalid).
+					WithField("parse.int.err", errInt).
+					WithField("parse.float.err", errFloat)
 			}
 			b.f = f
 		} else {
@@ -65,8 +67,11 @@ func (b *Number) UnmarshalJSON(data []byte) error {
 		b.n = int64(v)
 	case int64:
 		b.n = v
+	case nil:
+		b.n = 0
 	default:
-		return fmt.Errorf("unsupported type: %T UnmarshalJSON to Number", v)
+		return base.NewErrorWithType(ErrTypeNumberUnmarshalFailed, ErrNumberTypeUnSupported).
+			WithField("value.type", reflect.TypeOf(v).String())
 	}
 	if b.f != 0 {
 		b.n = int64(b.f)

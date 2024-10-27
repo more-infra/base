@@ -2,7 +2,8 @@ package tjson
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/more-infra/base"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -33,7 +34,8 @@ func (b *Boolean) UnmarshalJSON(data []byte) error {
 		case "":
 			*b = false
 		default:
-			return fmt.Errorf("invalid boolean string: %s", v)
+			return base.NewErrorWithType(ErrTypeBooleanUnmarshalFailed, ErrBooleanTypeStringInvalid).
+				WithField("string.value", v)
 		}
 	case bool:
 		if v {
@@ -41,8 +43,11 @@ func (b *Boolean) UnmarshalJSON(data []byte) error {
 		} else {
 			*b = false
 		}
+	case nil:
+		*b = false
 	default:
-		return fmt.Errorf("unsupported type: %T UnmarshalJSON to Boolean", v)
+		return base.NewErrorWithType(ErrTypeBooleanUnmarshalFailed, ErrBooleanTypeUnSupported).
+			WithField("value.type", reflect.TypeOf(v).String())
 	}
 	return nil
 }
