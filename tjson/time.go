@@ -27,12 +27,12 @@ func WithFormat(format string) Option {
 	}
 }
 
-func NewTime(options ...Option) Time {
-	time := Time{
+func NewTime(options ...Option) *Time {
+	time := &Time{
 		f:    time.DateTime,
 	}
 	for _, option := range options {
-		option(&time)
+		option(time)
 	}
 	return time
 }

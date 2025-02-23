@@ -17,13 +17,13 @@ func TestTimeMarshalJSON(t *testing.T) {
 		RFC3339Nano      Time  `json:"rfc3339nano"`
 	}
 	var d = Data{
-		Nano:     NewTime(WithFormat(time.RFC3339Nano), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 123456789, time.UTC))),
-		Micro:    NewTime(WithFormat(time.RFC3339Nano), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 123456, time.UTC))),
-		Milli:    NewTime(WithFormat(time.RFC3339Nano), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 123, time.UTC))),
-		Second:   NewTime(WithFormat("2006-01-02X15:04:05TTT"), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 0, time.UTC))),
-		DateTime: NewTime(WithFormat(time.DateTime), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 0, time.UTC))),
-		RFC3339:  NewTime(WithFormat(time.RFC3339), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 0, time.UTC))),
-		RFC3339Nano: NewTime(WithFormat(time.RFC3339Nano), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 123456789, time.UTC))),
+		Nano:     *NewTime(WithFormat(time.RFC3339Nano), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 123456789, time.UTC))),
+		Micro:    *NewTime(WithFormat(time.RFC3339Nano), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 123456, time.UTC))),
+		Milli:    *NewTime(WithFormat(time.RFC3339Nano), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 123, time.UTC))),
+		Second:   *NewTime(WithFormat("2006-01-02X15:04:05TTT"), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 0, time.UTC))),
+		DateTime: *NewTime(WithFormat(time.DateTime), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 0, time.UTC))),
+		RFC3339:  *NewTime(WithFormat(time.RFC3339), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 0, time.UTC))),
+		RFC3339Nano: *NewTime(WithFormat(time.RFC3339Nano), WithTime(time.Date(2025, 2, 22, 15, 12, 33, 123456789, time.UTC))),
 	}
 	b, err := json.Marshal(&d)
 	if err != nil {
