@@ -26,7 +26,16 @@ It includes many typical and common data structures,functions for basic using.
 | varfmt    | format string with variable by custom syntax and variable value provider                                             |
 | scheduler | dynamic goroutine pool for executing tasks, which could be controlled by custom options                              |
 | kv        | convert between struct object with tag defined and map[string]interface{} like json/yaml Marshal/Unmarshal do.       |
+| tjson     | json custom type for json.Marshal and json.Unmarshal,such as time.Time,bool,int,etc.                                 |
 
 ## Development
 Now, this project is in developing stage, so the code is changing frequently.
 A new version will be published every week at Friday.
+
+## Contributing
+
+We welcome contributions! Please feel free to submit a PR.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.

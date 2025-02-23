@@ -1,4 +1,9 @@
+# [v0.9.9] 2025-02-23
+## Enhance
+- [tjson] add time type supported
+---
 # [v0.9.8] 2024-10-26
+## Enhance
 - [tjson] add package with json custom type for json.Unmarshal 
 ---
 # [v0.9.7] 2024-08-26
