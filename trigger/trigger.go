@@ -101,141 +101,141 @@ type condition struct {
 }
 
 // Start is required to called before call Add or Flush.
-func (this *Trigger) Start() {
-	if !this.statusController.Starting() {
+func (tr *Trigger) Start() {
+	if !tr.statusController.Starting() {
 		return
 	}
-	defer this.statusController.Started()
-	this.runner.Mark()
-	go this.running()
+	defer tr.statusController.Started()
+	tr.runner.Mark()
+	go tr.running()
 }
 
 // Stop is required to called in pair with Start for shutdown the Trigger.
-func (this *Trigger) Stop() {
-	if !this.statusController.Stopping() {
+func (tr *Trigger) Stop() {
+	if !tr.statusController.Stopping() {
 		return
 	}
-	defer this.statusController.Stopped()
-	this.runner.CloseWait()
-	close(this.addCh)
-	close(this.flush)
+	defer tr.statusController.Stopped()
+	tr.runner.CloseWait()
+	close(tr.addCh)
+	close(tr.flush)
 }
 
 // Add put an element into Trigger.
-func (this *Trigger) Add(e interface{}) {
-	if !this.statusController.KeepRunning() {
+func (tr *Trigger) Add(e interface{}) {
+	if !tr.statusController.KeepRunning() {
 		return
 	}
-	defer this.statusController.ReleaseRunning()
-	this.addCh <- e
+	defer tr.statusController.ReleaseRunning()
+	tr.addCh <- e
 }
 
 // Flush will do pack all elements in Trigger to batch manually.
-func (this *Trigger) Flush() {
-	if !this.statusController.KeepRunning() {
+func (tr *Trigger) Flush() {
+	if !tr.statusController.KeepRunning() {
 		return
 	}
-	defer this.statusController.ReleaseRunning()
-	this.flush <- struct{}{}
+	defer tr.statusController.ReleaseRunning()
+	tr.flush <- struct{}{}
 }
 
-func (this *Trigger) running() {
+func (tr *Trigger) running() {
 	var timer *time.Timer
 	defer func() {
 		timer.Stop()
 		var ee []interface{}
-		for this.queue.Length() != 0 {
-			ee = append(ee, this.queue.Remove())
+		for tr.queue.Length() != 0 {
+			ee = append(ee, tr.queue.Remove())
 		}
 		if len(ee) != 0 {
-			this.receiver.Push(ee)
+			tr.receiver.Push(ee)
 		}
-		this.receiver.Push([]interface{}{})
-		this.runner.Done()
+		tr.receiver.Push([]interface{}{})
+		tr.runner.Done()
 	}()
-	dur := this.conf.maxTime
+	dur := tr.conf.maxTime
 	timer = time.NewTimer(dur)
 	if dur == 0 {
 		<-timer.C
 	}
 	for {
 		select {
-		case <-this.runner.Quit():
+		case <-tr.runner.Quit():
 			return
-		case e := <-this.addCh:
-			this.queue.Add(e)
-			if this.schemeCondition(e) != 0 && dur != 0 {
+		case e := <-tr.addCh:
+			tr.queue.Add(e)
+			if tr.schemeCondition(e) != 0 && dur != 0 {
 				timer.Reset(dur)
 			}
-			if this.schemeCount() != 0 && dur != 0 {
+			if tr.schemeCount() != 0 && dur != 0 {
 				timer.Reset(dur)
 			}
-		case <-this.flush:
-			this.doFlush()
+		case <-tr.flush:
+			tr.doFlush()
 		case <-timer.C:
-			this.schemeExpired()
+			tr.schemeExpired()
 			timer.Reset(dur)
 		}
 	}
 }
 
-func (this *Trigger) schemeExpired() int {
-	ee := this.popCount(this.queue.Length())
+func (tr *Trigger) schemeExpired() int {
+	ee := tr.popCount(tr.queue.Length())
 	if len(ee) != 0 {
-		this.receiver.Push(ee)
-		this.notifyCondition(EventTimeReached, ee)
+		tr.receiver.Push(ee)
+		tr.notifyCondition(EventTimeReached, ee)
 	}
 	return len(ee)
 }
 
-func (this *Trigger) doFlush() int {
-	ee := this.popCount(this.queue.Length())
+func (tr *Trigger) doFlush() int {
+	ee := tr.popCount(tr.queue.Length())
 	if len(ee) != 0 {
-		this.receiver.Push(ee)
+		tr.receiver.Push(ee)
 	}
 	return len(ee)
 }
 
-func (this *Trigger) schemeCount() int {
-	if this.conf.maxCount == 0 {
+func (tr *Trigger) schemeCount() int {
+	if tr.conf.maxCount == 0 {
 		return 0
 	}
 	var count int
-	for this.queue.Length() >= this.conf.maxCount {
-		ee := this.popCount(this.conf.maxCount)
-		this.receiver.Push(ee)
+	for tr.queue.Length() >= tr.conf.maxCount {
+		ee := tr.popCount(tr.conf.maxCount)
+		tr.receiver.Push(ee)
 		count += len(ee)
-		this.notifyCondition(EventCountReached, ee)
+		tr.notifyCondition(EventCountReached, ee)
 	}
 	return count
 }
 
-func (this *Trigger) schemeCondition(e interface{}) int {
-	condition := this.conf.condition
+func (tr *Trigger) schemeCondition(e interface{}) int {
+	condition := tr.conf.condition
 	if condition == nil {
 		return 0
 	}
 	var count int
 	n := condition.f(condition.c, EventConditionScheme, e)
 	if n != 0 {
-		ee := this.popCount(n)
-		this.receiver.Push(ee)
+		ee := tr.popCount(n)
+		tr.receiver.Push(ee)
 		count = len(ee)
 	}
 	return count
 }
 
-func (this *Trigger) notifyCondition(evt string, ee []interface{}) {
-	if this.conf.condition != nil {
-		this.conf.condition.f(this.conf.condition.c, evt, ee...)
+func (tr *Trigger) notifyCondition(evt string, ee []interface{}) {
+	if tr.conf.condition != nil {
+		tr.conf.condition.f(tr.conf.condition.c, evt, ee...)
 	}
 }
 
-func (this *Trigger) popCount(count int) []interface{} {
+func (tr *Trigger) popCount(count int) []interface{} {
 	ee := make([]interface{}, count, count)
 	var n int
-	for this.queue.Length() != 0 {
-		ee[n] = this.queue.Remove()
+	for tr.queue.Length() != 0 {
+		ee[n] = tr.queue.Remove()
 		n++
 	}
 	return ee

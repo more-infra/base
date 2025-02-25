@@ -54,8 +54,8 @@ func (t *backgroundTask) running() {
 	}
 }
 
-func (this *backgroundTask) do() {
-	this.count++
+func (t *backgroundTask) do() {
+	t.count++
 }
 
 func TestRunner(t *testing.T) {

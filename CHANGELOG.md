@@ -1,6 +1,7 @@
 # [v0.9.9] 2025-02-28
 ## Enhance
 - [tjson] add time type supported
+- [event] add event package
 ---
 # [v0.9.8] 2024-10-26
 ## Enhance
