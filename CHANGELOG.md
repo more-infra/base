@@ -2,6 +2,7 @@
 ## Enhance
 - [tjson] add time type supported
 - [event] add event package
+- [observer] add observer package
 ---
 # [v0.9.8] 2024-10-26
 ## Enhance

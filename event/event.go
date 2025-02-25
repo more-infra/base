@@ -66,3 +66,11 @@ func (e *Event) MarshalJSON() ([]byte, error) {
 		"content":  e.content,
 	})
 }
+
+func (e *Event) MapperMarshaller() interface{} {
+	return map[string]interface{}{
+		"time":     e.time.Time,
+		"category": e.category,
+		"content":  e.content,
+	}
+}
