@@ -239,6 +239,31 @@ func TestSplitWords(t *testing.T) {
 	}
 }
 
+func TestMarshalTimeWithFormatTag(t *testing.T) {
+	m := NewMapper()
+	type Object struct {
+		Time1s time.Time `kv:"time_with_format_tag_1s,time_fmt=trunc:1s"`
+		Time5m time.Time `kv:"time_with_format_tag_5m,time_fmt=trunc:5m"`
+		Time1h time.Time `kv:"time_with_format_tag_1h,time_fmt=trunc:1h"`
+		Time1d time.Time `kv:"time_with_format_tag_1d,time_fmt=trunc:24h"`
+		Time2d time.Time `kv:"time_with_format_tag_2d,time_fmt=trunc:48h"`
+	}
+	tm, _ := time.Parse("2006-01-02 15:04:05.999", "2024-05-20 17:23:52.345")
+	excepted1s, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 17:23:52")
+	excepted5m, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 17:20:00")
+	excepted1h, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 17:00:00")
+	excepted1d, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 00:00:00")
+	excepted2d, _ := time.Parse("2006-01-02 15:04:05", "2024-05-19 00:00:00")
+	kv := m.ObjectToMap(&Object{Time1s: tm, Time5m: tm, Time1h: tm, Time1d: tm, Time2d: tm})
+	assertMap(t, kv, map[string]interface{}{
+		"time_with_format_tag_1s": excepted1s,
+		"time_with_format_tag_5m": excepted5m,
+		"time_with_format_tag_1h": excepted1h,
+		"time_with_format_tag_1d": excepted1d,
+		"time_with_format_tag_2d": excepted2d,
+	})
+}
+
 func assertMap(t *testing.T, result map[string]interface{}, expected map[string]interface{}) {
 	if len(result) != len(expected) {
 		t.Fatal("map len is not equal")

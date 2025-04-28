@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/more-infra/base"
 )
 
 func (m *Mapper) objectToMap(obj interface{}) map[string]interface{} {
@@ -104,13 +106,10 @@ func (m *Mapper) handleStruct(ctx *context) {
 		} else {
 			k = meta.key
 		}
+		meta.key = k
 		m.handleField(&context{
-			kv: ctx.kv,
-			meta: &fieldMeta{
-				t:         fieldType.Type,
-				key:       k,
-				omitempty: meta.omitempty,
-			},
+			kv:    ctx.kv,
+			meta:  meta,
 			value: ctx.value.Field(n),
 		})
 	}
@@ -121,7 +120,11 @@ func (m *Mapper) handleMap(ctx *context) {
 		v := ctx.value.MapIndex(key)
 		k := key.String()
 		if len(ctx.meta.key) != 0 {
-			k = ctx.meta.key + m.nestConcat + k
+			if len(k) != 0 {
+				k = ctx.meta.key + m.nestConcat + k
+			} else {
+				k = ctx.meta.key
+			}
 		}
 		m.handleField(&context{
 			kv: ctx.kv,
@@ -162,13 +165,27 @@ func (m *Mapper) handleArray(ctx *context) {
 
 func (m *Mapper) handleBasic(ctx *context) {
 	if !ctx.value.IsZero() || !ctx.meta.omitempty {
-		ctx.kv[ctx.meta.key] = ctx.value.Interface()
+		ctx.kv[ctx.meta.key] = m.value(ctx, ctx.value.Interface())
 	}
+}
+
+func (this *Mapper) value(ctx *context, v interface{}) interface{} {
+	if v == nil {
+		return nil
+	}
+	if timeFormat := ctx.meta.timeFormat; timeFormat != nil {
+		if timeFormat.trunc != 0 {
+			if t, ok := v.(time.Time); ok {
+				return t.Truncate(timeFormat.trunc)
+			}
+		}
+	}
+	return v
 }
 
 func (m *Mapper) parseMeta(field reflect.StructField) *fieldMeta {
 	tag := field.Tag.Get(m.tagName)
-	va := strings.Split(tag, ",")
+	va := strings.Split(tag, MetaTagKeySpilit)
 	key := va[0]
 	if len(key) == 0 {
 		key = m.emptyTagKeyName(field)
@@ -182,12 +199,54 @@ func (m *Mapper) parseMeta(field reflect.StructField) *fieldMeta {
 		key: key,
 	}
 	for i := 1; i != len(va); i++ {
-		switch va[i] {
-		case "omitempty":
+		keyVal := va[i]
+		if keyVal == MetaTagKeyOmitempty {
 			meta.omitempty = true
+			continue
+		}
+		kva := strings.Split(keyVal, MetaTagKeyAssign)
+		if len(kva) != 2 {
+			panic(fmt.Sprintf("invalid meta tag: %s", keyVal))
+		}
+		key := kva[0]
+		val := kva[1]
+		switch key {
+		case MetaTagKeyTimeFormat:
+			if err := m.parseTimeFormat(meta, val); err != nil {
+				panic(err)
+			}
+		default:
+			panic(fmt.Sprintf("unknown meta tag: %s", key))
 		}
 	}
 	return meta
+}
+
+func (m *Mapper) parseTimeFormat(meta *fieldMeta, keyVal string) error {
+	va := strings.Split(keyVal, MetaTagAttributeSplit)
+	for _, v := range va {
+		v := strings.Split(v, MetaTagAttributeAssign)
+		if len(v) != 2 {
+			return base.NewErrorWithType(ErrTypeMarshalInvalidType, ErrUnsupportedFieldType).
+				WithField("meta", meta).
+				WithField("keyVal", keyVal)
+		}
+		attrKey := v[0]
+		attrVal := v[1]
+		switch attrKey {
+		case MetaTagAttributeTimeFormatTrunc:
+			dur, err := time.ParseDuration(attrVal)
+			if err != nil {
+				return base.NewErrorWithType(ErrTypeMarshalInvalidType, err).
+					WithField("meta", meta).
+					WithField("keyVal", keyVal)
+			}
+			meta.timeFormat = &fieldMetaAttributeTimeFormat{
+				trunc: dur,
+			}
+		}
+	}
+	return nil
 }
 
 func (m *Mapper) emptyTagKeyName(field reflect.StructField) string {
@@ -210,9 +269,14 @@ func (m *Mapper) emptyTagKeyName(field reflect.StructField) string {
 }
 
 type fieldMeta struct {
-	t         reflect.Type
-	key       string
-	omitempty bool
+	t          reflect.Type
+	key        string
+	omitempty  bool
+	timeFormat *fieldMetaAttributeTimeFormat
+}
+
+type fieldMetaAttributeTimeFormat struct {
+	trunc time.Duration
 }
 
 type context struct {

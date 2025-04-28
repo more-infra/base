@@ -6,11 +6,25 @@ import (
 
 const (
 	ErrTypeUnmarshalInvalidType = "kv.unmarshal_invalid_type"
+	ErrTypeMarshalInvalidType   = "kv.marshal_invalid_type"
 )
 
 var (
 	ErrObjectInvalidType    = errors.New("object to unmarshal is not struct type")
 	ErrUnsupportedFieldType = errors.New("type of field to unmarshal is not supported")
+)
+
+const (
+	MetaTagKeySpilit       = ","
+	MetaTagKeyOmitempty    = "omitempty"
+	MetaTagKeyAssign       = "="
+	MetaTagAttributeAssign = ":"
+	MetaTagAttributeSplit  = ";"
+)
+
+const (
+	MetaTagKeyTimeFormat            = "time_fmt"
+	MetaTagAttributeTimeFormatTrunc = "trunc"
 )
 
 // MapperMarshaller is used for custom defined type for marshal to a general interface{} type,

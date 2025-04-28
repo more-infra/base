@@ -46,6 +46,15 @@ func (m *Mapper) unmarshalField(ctx *context) error {
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
+	if t.Kind() == reflect.Struct {
+		switch fmt.Sprintf("%s.%s", t.PkgPath(), t.Name()) {
+		case "time.Time":
+			return m.unmarshalBasic(ctx)
+		case "time.Duration":
+			return m.unmarshalBasic(ctx)
+		}
+	}
+	
 	switch t.Kind() {
 	case reflect.Struct:
 		return m.unmarshalStruct(ctx)
@@ -241,9 +250,10 @@ func (m *Mapper) unmarshalBasic(ctx *context) error {
 		return nil
 	}
 	val := m.newValueIfNilPointer(ctx.value)
-	val.Set(reflect.ValueOf(v))
+	val.Set(reflect.ValueOf(m.value(ctx, v)))
 	return nil
 }
+
 
 func (m *Mapper) newValueIfNilPointer(val reflect.Value) reflect.Value {
 	for val.Type().Kind() == reflect.Pointer {

@@ -2,6 +2,7 @@ package kv
 
 import (
 	"testing"
+	"time"
 )
 
 func TestUnmarshalInterfaceField(t *testing.T) {
@@ -170,5 +171,40 @@ func TestUnmarshalSlice(t *testing.T) {
 		obj.SliceNestSlice[1].Objects[0].NS != "object_ns_3" ||
 		obj.SliceNestSlice[1].Objects[1].NS != "object_ns_4" {
 		t.Fatalf("slice nest slice is not unexpected")
+	}
+}
+
+func TestUnMarshalTimeWithFormatTag(t *testing.T) {
+	m := NewMapper()
+	type Object struct {
+		Time1s time.Time `kv:"time_with_format_tag_1s,time_fmt=trunc:1s"`
+		Time5m time.Time `kv:"time_with_format_tag_5m,time_fmt=trunc:5m"`
+		Time1h time.Time `kv:"time_with_format_tag_1h,time_fmt=trunc:1h"`
+		Time1d time.Time `kv:"time_with_format_tag_1d,time_fmt=trunc:24h"`
+		Time2d time.Time `kv:"time_with_format_tag_2d,time_fmt=trunc:48h"`
+	}
+	tm, _ := time.Parse("2006-01-02 15:04:05.999", "2024-05-20 17:23:52.345")
+	excepted1s, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 17:23:52")
+	excepted5m, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 17:20:00")
+	excepted1h, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 17:00:00")
+	excepted1d, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 00:00:00")
+	excepted2d, _ := time.Parse("2006-01-02 15:04:05", "2024-05-19 00:00:00")
+	
+	obj := &Object{}
+	if err := m.MapToObject(map[string]interface{}{
+		"time_with_format_tag_1s": tm,
+		"time_with_format_tag_5m": tm,
+		"time_with_format_tag_1h": tm,
+		"time_with_format_tag_1d": tm,
+		"time_with_format_tag_2d": tm,
+	}, obj); err != nil {
+		t.Fatal(err)
+	}
+	if !obj.Time1s.Equal(excepted1s) ||
+		!obj.Time5m.Equal(excepted5m) ||
+		!obj.Time1h.Equal(excepted1h) ||
+		!obj.Time1d.Equal(excepted1d) ||
+		!obj.Time2d.Equal(excepted2d) {
+		t.Fatalf("time is not expected")
 	}
 }
