@@ -1,3 +1,7 @@
+# [v0.9.11] 2025-05-07
+## Ehance
+- [kv] 新增struct类型inline标签支持
+---
 # [v0.9.10] 2025-04-28
 ## Ehance
 - [kv] 新增time_fmt的tag，Marshal, Unmarshal均可支持time.Time类型的自定义截取

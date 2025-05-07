@@ -17,6 +17,7 @@ var (
 const (
 	MetaTagKeySpilit       = ","
 	MetaTagKeyOmitempty    = "omitempty"
+	MetaTagKeyInline       = "inline"
 	MetaTagKeyAssign       = "="
 	MetaTagAttributeAssign = ":"
 	MetaTagAttributeSplit  = ";"

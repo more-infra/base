@@ -30,7 +30,7 @@ func (m *Mapper) objectToMap(obj interface{}) map[string]interface{} {
 func (m *Mapper) handleField(ctx *context) {
 	for t := ctx.value.Type().Kind(); t == reflect.Pointer || t == reflect.Interface; {
 		if ctx.value.IsZero() {
-			if !ctx.meta.omitempty {
+			if !ctx.meta.inline && !ctx.meta.omitempty {
 				ctx.kv[ctx.meta.key] = nil
 			}
 			return
@@ -97,7 +97,7 @@ func (m *Mapper) handleStruct(ctx *context) {
 	for n := 0; n != t.NumField(); n++ {
 		fieldType := t.Field(n)
 		meta := m.parseMeta(fieldType)
-		if len(meta.key) == 0 {
+		if len(meta.key) == 0 && !meta.inline {
 			continue
 		}
 		k := ctx.meta.key
@@ -132,6 +132,7 @@ func (m *Mapper) handleMap(ctx *context) {
 				t:         v.Type(),
 				key:       k,
 				omitempty: false,
+				inline:    false,
 			},
 			value: v,
 		})
@@ -153,6 +154,7 @@ func (m *Mapper) handleSlice(ctx *context) {
 				t:         v.Type(),
 				key:       key,
 				omitempty: false,
+				inline:    false,
 			},
 			value: v,
 		})
@@ -202,6 +204,10 @@ func (m *Mapper) parseMeta(field reflect.StructField) *fieldMeta {
 		keyVal := va[i]
 		if keyVal == MetaTagKeyOmitempty {
 			meta.omitempty = true
+			continue
+		}
+		if keyVal == MetaTagKeyInline {
+			meta.inline = true
 			continue
 		}
 		kva := strings.Split(keyVal, MetaTagKeyAssign)
@@ -272,6 +278,7 @@ type fieldMeta struct {
 	t          reflect.Type
 	key        string
 	omitempty  bool
+	inline     bool
 	timeFormat *fieldMetaAttributeTimeFormat
 }
 

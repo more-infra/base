@@ -27,7 +27,7 @@ func (m *Mapper) mapToObject(kv map[string]interface{}, obj interface{}) error {
 	for n := 0; n != t.NumField(); n++ {
 		fieldType := t.Field(n)
 		meta := m.parseMeta(fieldType)
-		if len(meta.key) == 0 {
+		if len(meta.key) == 0 && !meta.inline {
 			continue
 		}
 		if err := m.unmarshalField(&context{
@@ -76,20 +76,24 @@ func (m *Mapper) unmarshalField(ctx *context) error {
 }
 
 func (m *Mapper) unmarshalStruct(ctx *context) error {
-	if len(prefixIncludeKeys(ctx.kv, ctx.meta.key+m.nestConcat, func(s string) bool {
-		return len(s) > 0
-	})) == 0 {
-		return nil
+	if len(ctx.meta.key) != 0 {
+		if len(prefixIncludeKeys(ctx.kv, ctx.meta.key+m.nestConcat, func(s string) bool {
+			return len(s) > 0
+		})) == 0 {
+			return nil
+		}
 	}
 	val := m.newValueIfNilPointer(ctx.value)
 	t := val.Type()
 	for n := 0; n != t.NumField(); n++ {
 		fieldType := t.Field(n)
 		meta := m.parseMeta(fieldType)
-		if len(meta.key) == 0 {
+		if len(meta.key) == 0 && !meta.inline {
 			continue
 		}
-		meta.key = ctx.meta.key + m.nestConcat + meta.key
+		if len(ctx.meta.key) != 0 {
+			meta.key = ctx.meta.key + m.nestConcat + meta.key
+		}
 		if err := m.unmarshalField(&context{
 			kv:    ctx.kv,
 			meta:  meta,

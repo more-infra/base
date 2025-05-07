@@ -95,6 +95,23 @@ func TestMarshalNestStruct(t *testing.T) {
 	})
 }
 
+func TestInlineNestStruct(t *testing.T) {
+	m := NewMapper().
+		WithNestConcat(".")
+	type NestObject struct {
+		NS string `kv:"ns"`
+	}
+	type Object struct {
+		NestObject `kv:",inline"`
+	}
+	kv := m.ObjectToMap(&Object{
+		NestObject: NestObject{NS: "ns_value"},
+	})
+	assertMap(t, kv, map[string]interface{}{
+		"ns": "ns_value",
+	})
+}
+
 func TestMarshalSlice(t *testing.T) {
 	m := NewMapper().
 		WithSliceOrderConcat("*")

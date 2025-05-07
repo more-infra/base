@@ -80,6 +80,34 @@ func TestUnmarshalNestStruct(t *testing.T) {
 	}
 }
 
+func TestUnmarshalInlineNestStruct(t *testing.T) {
+	m := NewMapper().
+		WithNestConcat(".")
+	type NestObject struct {
+		NS string `kv:"ns"`
+	}
+	type PointerNestObject struct {
+		PNS string `kv:"pns"`
+	}
+	type Object struct {
+		NestObject         `kv:",inline"`
+		*PointerNestObject `kv:",inline"`
+	}
+	obj := &Object{}
+	if err := m.MapToObject(map[string]interface{}{
+		"ns": "ns_value",
+		"pns": "pns_value",
+	}, obj); err != nil {
+		t.Fatal(err)
+	}
+	if obj.NS != "ns_value" {
+		t.Fatalf("NS field is not expected")
+	}
+	if obj.PointerNestObject == nil || obj.PointerNestObject.PNS != "pns_value" {
+		t.Fatalf("PointerNestObject field is not expected")
+	}
+}
+
 func TestUnmarshalMap(t *testing.T) {
 	m := NewMapper()
 	type NestObject struct {
@@ -189,7 +217,7 @@ func TestUnMarshalTimeWithFormatTag(t *testing.T) {
 	excepted1h, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 17:00:00")
 	excepted1d, _ := time.Parse("2006-01-02 15:04:05", "2024-05-20 00:00:00")
 	excepted2d, _ := time.Parse("2006-01-02 15:04:05", "2024-05-19 00:00:00")
-	
+
 	obj := &Object{}
 	if err := m.MapToObject(map[string]interface{}{
 		"time_with_format_tag_1s": tm,
